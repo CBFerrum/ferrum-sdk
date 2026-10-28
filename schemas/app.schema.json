@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/CBFerrum/ferrum-sdk/blob/main/schemas/app.schema.json",
+  "title": "Ferrum app manifest (app.yaml)",
+  "description": "What a Ferrum app is, needs and brings. `ferrum-app check` applies these rules and the ones a schema cannot express (files exist, package entities carry the prefix, the plugin validates).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "publisher", "summary", "categories", "runtime", "platform"],
+  "properties": {
+    "id": {
+      "description": "Unique app id in the store: a lower-case letter, then lower-case letters, digits or '-' (2-40 characters).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,39}$"
+    },
+    "name": { "description": "Display name.", "type": "string", "minLength": 1, "maxLength": 60 },
+    "version": {
+      "description": "Semantic version of this release, without build metadata.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$"
+    },
+    "publisher": { "description": "Store publisher id (same syntax as app ids).", "type": "string", "pattern": "^[a-z][a-z0-9-]{1,39}$" },
+    "summary": { "description": "One line for listings.", "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": {
+      "description": "A markdown file in the bundle shown on the app's page, usually README.md.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*\\.md$"
+    },
+    "categories": {
+      "description": "One to three store categories.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "sales", "crm", "support", "hr", "finance", "inventory", "manufacturing", "projects", "commerce", "pos", "communication",
+          "productivity", "marketing", "analytics", "integrations", "localization", "energy", "iot", "education", "healthcare", "industry",
+          "developer"
+        ]
+      }
+    },
+    "icon": { "$ref": "#/definitions/image" },
+    "screenshots": { "type": "array", "maxItems": 10, "uniqueItems": true, "items": { "$ref": "#/definitions/image" } },
+    "license": { "description": "SPDX license expression, such as Apache-2.0.", "type": "string", "minLength": 1, "maxLength": 100 },
+    "homepage": { "description": "An http(s) URL.", "type": "string", "maxLength": 300, "pattern": "^https?://[^\\s/\"'<>`\\\\][^\\s\"'<>`\\\\]*$" },
+    "support": {
+      "description": "An http(s) URL or an e-mail address.",
+      "type": "string",
+      "anyOf": [{ "pattern": "^https?://[^\\s/\"'<>`\\\\][^\\s\"'<>`\\\\]*$" }, { "pattern": "^[^@\\s\"'<>()\\[\\]\\\\,;:`]+@[^@\\s\"'<>()\\[\\]\\\\,;:`]+\\.[^@\\s\"'<>()\\[\\]\\\\,;:`]+$" }]
+    },
+    "runtime": {
+      "description": "native: Rust compiled into a Ferrum distribution; wasm: sandboxed WebAssembly plugin plus metadata; meta: metadata only.",
+      "enum": ["native", "wasm", "meta"]
+    },
+    "platform": { "description": "Ferrum app API versions this release works with, a semver requirement such as \">=0.3, <0.4\".", "type": "string", "minLength": 1 },
+    "requires": {
+      "description": "Other apps this one needs: app id -> semver requirement.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,39}$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "packages": {
+      "description": "Package directories under packages/ (each holds package.yaml, entities/*.yaml, sql/*.sql, print/*.html).",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,62}$" }
+    },
+    "plugin": { "description": "wasm apps only: the plugin manifest; the module is plugin.wasm.", "const": "plugin.json" },
+    "prefix": {
+      "description": "PascalCase namespace (2-8 letters or digits, not starting with X) of a wasm or meta app's entities, e.g. Ev for EvChargePoint.",
+      "type": "string",
+      "pattern": "^[A-WYZ][A-Za-z0-9]{1,7}$"
+    },
+    "settings": { "description": "Fields of the app's settings page.", "type": "array", "items": { "$ref": "#/definitions/setting" } },
+    "uninstall": { "description": "Whether removing the app offers to delete its data.", "enum": ["keep", "ask"], "default": "keep" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "runtime": { "const": "wasm" } }, "required": ["runtime"] },
+      "then": { "required": ["plugin"] },
+      "else": { "not": { "required": ["plugin"] } }
+    },
+    {
+      "if": { "properties": { "runtime": { "const": "meta" } }, "required": ["runtime"] },
+      "then": { "required": ["packages"], "properties": { "packages": { "minItems": 1 } } }
+    }
+  ],
+  "definitions": {
+    "image": {
+      "description": "An image in the bundle under assets/.",
+      "type": "string",
+      "pattern": "^assets/([A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\\.(png|jpg|jpeg|gif|webp|svg)$"
+    },
+    "setting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "type"],
+      "properties": {
+        "key": { "description": "snake_case key the app reads.", "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "type": { "description": "secret values are write-only.", "enum": ["text", "secret", "number", "check", "select"] },
+        "options": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 100 } },
+        "required": { "type": "boolean" },
+        "description": { "type": "string", "maxLength": 500 }
+      },
+      "if": { "properties": { "type": { "const": "select" } } },
+      "then": { "required": ["options"], "properties": { "options": { "minItems": 1 } } },
+      "else": { "properties": { "options": { "maxItems": 0 } } }
+    }
+  }
+}

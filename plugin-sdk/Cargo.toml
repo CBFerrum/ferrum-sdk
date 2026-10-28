@@ -1,0 +1,14 @@
+# Rust SDK for Ferrum plugins (compile with --target wasm32-unknown-unknown).
+[package]
+name = "ferrum-plugin-sdk"
+version = "0.2.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/CBFerrum/ferrum-sdk"
+description = "Write Ferrum plugins in Rust: entry point, host calls (records, key-value, HTTP, events, sockets)"
+
+[dependencies]
+serde_json = "1"
+
+# Its own workspace: apps build it for wasm32-unknown-unknown, apart from the ferrum-app CLI.
+[workspace]

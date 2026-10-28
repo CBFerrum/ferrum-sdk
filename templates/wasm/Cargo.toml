@@ -1,0 +1,28 @@
+# The {{name}} plugin, compiled to WebAssembly. From the app directory:
+#   rustup target add wasm32-unknown-unknown
+#   cargo build --manifest-path plugin/Cargo.toml --release --target wasm32-unknown-unknown
+#   cp plugin/target/wasm32-unknown-unknown/release/{{wasm_file}} plugin.wasm
+[package]
+name = "{{crate}}"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ferrum-plugin-sdk = { git = "https://github.com/CBFerrum/ferrum-sdk" }
+
+# To build against a local ferrum-sdk checkout instead:
+# [patch."https://github.com/CBFerrum/ferrum-sdk"]
+# ferrum-plugin-sdk = { path = "../../ferrum-sdk/plugin-sdk" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+strip = true
+
+# Its own workspace: built for wasm32-unknown-unknown.
+[workspace]
