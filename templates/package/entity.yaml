@@ -1,0 +1,12 @@
+name: {{entity}}
+label: Note
+label_plural: Notes
+kind: master
+module: {{module}}
+title_field: title
+fields:
+  - {name: title, type: data, required: true, in_list: true}
+  - {name: status, type: select, options: [Open, Done], default: Open, required: true, in_list: true, in_filter: true}
+  - {name: details, type: text}
+list: {columns: [title, status], sort: title asc}
+search_fields: [title]

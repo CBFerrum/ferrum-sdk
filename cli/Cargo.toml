@@ -1,0 +1,21 @@
+[package]
+name = "ferrum-app"
+description = "Ferrum app developer CLI: scaffold, check, pack, sign, verify, inspect, publish and develop apps"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ferrum-apps = { workspace = true }
+ferrum-meta = { workspace = true }
+ferrum-plugins = { workspace = true }
+clap = { version = "4.6", features = ["derive", "env"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+semver = "1"
+serde_json = "1"
+tokio = { version = "1", features = ["rt"] }
+
+[dev-dependencies]
+tempfile = "3"
+wat = "1"

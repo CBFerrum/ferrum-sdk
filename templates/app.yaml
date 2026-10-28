@@ -1,0 +1,22 @@
+# {{name}}: a Ferrum app. Field reference: "Manifest reference" in the ferrum-sdk README;
+# editors validate this file with schemas/app.schema.json.
+id: {{id}}
+name: "{{name}}"
+version: 0.1.0
+# Your store publisher id.
+publisher: {{publisher}}
+summary: "{{name}} keeps notes with a status for your team"
+# Shown on the app's store page.
+description: README.md
+# One to three store categories.
+categories: [productivity]
+license: MIT
+runtime: {{runtime}}
+# Ferrum app API versions this release works with.
+platform: "{{platform}}"
+# Directories under packages/.
+packages: [{{package}}]
+{{plugin_line}}
+{{prefix_line}}
+# keep | ask: whether removing the app offers to delete its data.
+uninstall: keep

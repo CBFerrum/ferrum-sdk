@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["cli"]
+# plugin-sdk is its own workspace: apps build it for wasm32-unknown-unknown.
+exclude = ["plugin-sdk"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/CBFerrum/ferrum-sdk"
+
+[workspace.dependencies]
+# The platform crates. For development against a local checkout, add a git-ignored
+# .cargo/config.toml patching them to paths (see README.md, "Building the SDK").
+ferrum-apps = { git = "https://github.com/CBFerrum/Ferrum", branch = "main" }
+ferrum-meta = { git = "https://github.com/CBFerrum/Ferrum", branch = "main" }
+ferrum-plugins = { git = "https://github.com/CBFerrum/Ferrum", branch = "main" }
+
+[profile.dev]
+# Small target/ and fast builds; line tables are enough for backtraces.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

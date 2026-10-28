@@ -1,0 +1,7 @@
+{
+  "name": "{{id}}",
+  "version": "0.1.0",
+  "description": "Tidies note titles before they are saved",
+  "hooks": [{"entity": "{{entity}}", "stage": "before_validate"}],
+  "permissions": []
+}

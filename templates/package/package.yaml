@@ -1,0 +1,16 @@
+# The {{package}} package: what this app adds to a workspace's schema (entities in entities/,
+# optional print/<Entity>.html templates). Same format as Ferrum's own packages.
+package: {{package}}
+version: 0.1.0
+label: "{{name}}"
+description: Notes with a status.
+modules:
+  - name: {{module}}
+    label: "{{name}}"
+    order: 90
+    items: [{{entity}}]
+roles:
+  - name: "{{role}}"
+    description: Reads and maintains notes.
+    permissions:
+      - {entity: {{entity}}, read: true, write: true, create: true, delete: true}

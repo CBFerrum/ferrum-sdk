@@ -1,0 +1,5 @@
+/target
+/plugin/target
+*.fapp
+# Signing keys are secrets.
+*.pk8
