@@ -112,8 +112,9 @@ depends on the platform crates by git tag, embeds `packages/` at compile time an
 `maintenance(&Kernel)`; see `ferrum-app-crm` for a complete example. Its `DocHook`s take part in
 every document's life (`before_validate` … `on_cancel`, actions) and may extend the platform's
 own actions with `after_action` (Manufacturing Operations re-costs a BOM's operations when "Update
-Cost" re-costs its materials). Public endpoints can throttle across replicas with
-`Kernel::rate_limit`. The bundle a native app directory packs carries its manifest and packages
+Cost" re-costs its materials). Rows an app keeps in another document's table (a work order's
+crew) are written with `Kernel::set_child_rows_tx`; public endpoints throttle across replicas
+with `Kernel::rate_limit`. The bundle a native app directory packs carries its manifest and packages
 for the store; the code ships in the server image.
 
 ## Manifest reference (`app.yaml`)
