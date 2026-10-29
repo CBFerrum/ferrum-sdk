@@ -30,7 +30,11 @@ The SDK is Apache-2.0 licensed, so apps built with it may use any license.
   | `native` | Rust compiled into a Ferrum distribution | everything the platform can do; reserved for reviewed code |
 
 * **Package**: Ferrum's metadata unit (`package.yaml`, `entities/*.yaml`, `sql/*.sql`,
-  `print/<Entity>.html`). An app brings packages under `packages/<name>/`.
+  `print/<Entity>.html`). An app brings packages under `packages/<name>/`. A package that keeps
+  people's data declares it in `package.yaml` so personal-data requests reach it:
+  `personal_data: [{entity: Booking, match: guest_email, erase: [guest_name, guest_email, guest_phone]}]`
+  (`match` is the email field naming the person; `erase` takes text, contact, date, JSON and table
+  fields; an optional `where: {field: value}` narrows the records).
 * **Bundle**: one release as a file, `<id>-<version>.fapp`: a gzip-compressed tar with
   `app.yaml`, docs, packages, `plugin.json` and `plugin.wasm` (wasm apps), images under
   `assets/`, and `SIGNATURES.json`.
