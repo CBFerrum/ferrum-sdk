@@ -1,0 +1,12 @@
+/* The host's design tokens arrive as CSS variables (ferrum.js); the fallbacks are for a page opened alone. */
+:root { font: 14px/1.5 system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; padding: 16px; color: var(--text, #18181b); background: transparent; }
+h1 { font-size: 18px; margin: 0 0 8px; }
+.muted { color: var(--muted-foreground, #71717a); }
+.row { display: flex; gap: 8px; margin: 12px 0; }
+input, button { font: inherit; padding: 6px 10px; border-radius: var(--radius-sm, 6px); border: 1px solid var(--border, #d4d4d8); background: var(--surface, #fff); color: inherit; }
+button { cursor: pointer; }
+button.primary { background: var(--primary, #2563eb); color: var(--primary-foreground, #fff); border-color: transparent; }
+button.link { border: 0; background: none; padding: 0; color: var(--primary, #2563eb); }
+.big { font-size: 32px; font-weight: 600; line-height: 1.1; }
+pre { background: var(--surface-2, #f4f4f5); padding: 12px; border-radius: var(--radius-sm, 6px); overflow: auto; }

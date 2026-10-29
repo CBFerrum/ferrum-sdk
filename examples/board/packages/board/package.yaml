@@ -1,0 +1,7 @@
+package: board
+version: 1.0.0
+depends: [core]
+roles:
+  - name: Board User
+    permissions:
+      - {entity: BdCard, read: true, write: true, create: true, delete: true}

@@ -59,6 +59,7 @@
       "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,39}$" },
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
+    "parent": { "description": "The app this one is an add-on of, shown under it on the Apps page; it must also be in requires.", "type": "string", "pattern": "^[a-z][a-z0-9-]{1,39}$" },
     "packages": {
       "description": "Package directories under packages/ (each holds package.yaml, entities/*.yaml, sql/*.sql, print/*.html).",
       "type": "array",
@@ -72,6 +73,31 @@
       "pattern": "^[A-WYZ][A-Za-z0-9]{1,7}$"
     },
     "settings": { "description": "Fields of the app's settings page.", "type": "array", "items": { "$ref": "#/definitions/setting" } },
+    "extension_points": {
+      "description": "Points other apps may contribute to, named <this app's id>.<name>.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,39}\\.[a-z][a-z0-9_]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description"],
+        "properties": {
+          "description": { "type": "string", "maxLength": 300 },
+          "schema": { "description": "What each contribution holds besides its id, in a JSON Schema subset: type, description, properties, required, additionalProperties (false), items, enum, maxLength, maxItems.", "type": "object" }
+        }
+      }
+    },
+    "contributes": {
+      "description": "What the app adds to extension points: the screen slots, its own points, or points of apps it requires. Point -> items, each with an id unique within the point.",
+      "type": "object",
+      "properties": {
+        "ui.page": { "description": "Pages with a sidebar entry.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry"] } },
+        "ui.widget": { "description": "Widgets on Home.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry"] } },
+        "ui.panel": { "description": "Tabs on the forms of an entity.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry", "entity"] } },
+        "ui.settings": { "description": "The app's own settings screen.", "type": "array", "maxItems": 1, "items": { "$ref": "#/definitions/screen", "required": ["id", "entry"] } }
+      },
+      "additionalProperties": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } } } }
+    },
     "uninstall": { "description": "Whether removing the app offers to delete its data.", "enum": ["keep", "ask"], "default": "keep" }
   },
   "allOf": [
@@ -86,6 +112,18 @@
     }
   ],
   "definitions": {
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "title": { "type": "string", "maxLength": 60 },
+        "entry": { "description": "An HTML page under ui/.", "type": "string", "pattern": "^ui/.+\\.html$" },
+        "icon": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "size": { "description": "Widgets: [width, height] in grid cells, each 1 to 12.", "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 12 }, "minItems": 2, "maxItems": 2 },
+        "entity": { "description": "Panels: the entity whose forms show it.", "type": "string" }
+      }
+    },
     "image": {
       "description": "An image in the bundle under assets/.",
       "type": "string",

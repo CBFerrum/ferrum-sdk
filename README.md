@@ -169,14 +169,45 @@ store only from verified publishers.
     packages/<name>/sql/*.sql
     packages/<name>/print/<Entity>.html
     assets/**/*.{png,jpg,jpeg,gif,webp,svg}
+    ui/**                        wasm and meta apps: screens
     SIGNATURES.json              added by ferrum-app sign
 
 Anything else is refused. Limits: 50 MiB unpacked, 2 000 files, 8 MiB `plugin.wasm`, 2 MiB per
 text file. Text files are UTF-8; images must really be images; paths use letters, digits, `.`,
-`_`, `-` and `/` only (no hidden files, no `..`, no links or devices). `ferrum-app` builds the
-bundle from the app directory's root files, `packages/` and `assets/` (hidden files skipped), so
+`_`, `-` and `/` only (no hidden files, no `..`, no links or devices). Screens under `ui/` may
+hold `html`, `js`, `mjs`, `css`, `json`, `map`, `txt` and `svg` text, and `wasm`, `woff2` and
+raster images up to 16 MiB each. `ferrum-app` builds the bundle from the app directory's root
+files, `packages/`, `assets/` and `ui/` (hidden files skipped), so
 sources such as `plugin/`, `target/` or `.git/` never end up in it. Packing is deterministic:
 the same files always give the same `.fapp`.
+
+## Screens and extension points
+
+An app can bring screens (pages under `ui/`) and offer or use extension points. Ferrum's
+`docs/plugins.md` ("Extension points and add-ons", "Screens") is the reference.
+
+| Slot | Shows | Item |
+|---|---|---|
+| `ui.page` | a page with a sidebar entry | `title`, `entry`, `icon` |
+| `ui.widget` | a card on Home | `title`, `entry`, `size: [w, h]` |
+| `ui.panel` | a tab on the forms of an entity | `title`, `entry`, `entity` |
+| `ui.settings` | the app's settings screen | `entry` |
+
+Screens run sandboxed, with no network of their own. They talk to Ferrum through `ferrum.js`:
+copy `examples/board/ui/ferrum.js` into your app's `ui/`. They can do what the app declared
+(its plugin's permissions and its own entities), within the user's rights.
+
+```js
+import { ferrum } from "./ferrum.js";
+
+const ctx = await ferrum.ready; // app, slot, user, locale, theme; record for panels
+const { rows } = await ferrum.api("GET", "/api/v1/BdCard", { query: { limit: 20 } });
+ferrum.toast(`${rows.length} cards`);
+```
+
+Scripts must be files: the screens' Content Security Policy allows no inline scripts. Forms
+cannot be submitted, so use buttons. `examples/board` shows all of it: a page, a widget, a panel,
+a settings screen and the `board.card` extension point.
 
 ## Permissions
 
