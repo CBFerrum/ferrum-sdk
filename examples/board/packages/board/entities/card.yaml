@@ -1,0 +1,7 @@
+name: BdCard
+label: Card
+kind: master
+title_field: title
+fields:
+  - {name: title, type: data, required: true}
+  - {name: column, type: select, options: [To do, Doing, Done], default: To do}

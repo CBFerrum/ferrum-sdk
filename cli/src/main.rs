@@ -18,7 +18,7 @@ use std::time::{Duration, SystemTime};
 
 type Result<T> = std::result::Result<T, String>;
 
-/// Root files a bundle may hold; `packages/` and `assets/` are taken whole (hidden files skipped).
+/// Root files a bundle may hold; `packages/`, `assets/` and `ui/` are taken whole (hidden files skipped).
 const ROOT_FILES: &[&str] = &["app.yaml", "README.md", "CHANGELOG.md", "LICENSE", "plugin.json", "plugin.wasm"];
 /// Largest file `sign`, `verify`, `inspect` and `publish` read as a bundle.
 const MAX_BUNDLE_FILE: u64 = 64 << 20;
@@ -284,7 +284,7 @@ fn walk(root: &Path, rel: &str, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata
 
 /// Visits every file of an app directory that belongs in its bundle.
 fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Result<()>) -> Result<()> {
-    for rel in ROOT_FILES.iter().chain(&["packages", "assets"]) {
+    for rel in ROOT_FILES.iter().chain(&["packages", "assets", "ui"]) {
         walk(dir, rel, visit)?;
     }
     Ok(())
@@ -292,7 +292,7 @@ fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Res
 
 /// Whether a path of an app directory goes into its bundle (what `walk_app` visits).
 pub(crate) fn in_bundle(rel: &str) -> bool {
-    ROOT_FILES.contains(&rel) || rel.starts_with("packages/") || rel.starts_with("assets/")
+    ROOT_FILES.contains(&rel) || rel.starts_with("packages/") || rel.starts_with("assets/") || rel.starts_with("ui/")
 }
 
 /// The files of an app directory that go into its bundle, exactly as `Bundle::from_files` takes them.
