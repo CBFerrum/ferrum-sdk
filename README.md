@@ -62,7 +62,9 @@ For wasm apps also: `rustup target add wasm32-unknown-unknown`.
 change it as you like), `.gitignore` and `packages/notes-kit/` with one entity (`NotesKitNote`)
 and one role. `dev` packs the directory and uploads it to a server as a private app (an
 administrator token is needed, and the server must allow uploads), again on every change with
-`--watch`.
+`--watch`. Each upload is versioned `<version>-dev.<timestamp>` (the app and its packages, in the
+uploaded copy only), so the server takes every change as a new release; update the app on the
+Apps page to try it.
 
 ### A wasm app (sandboxed code)
 

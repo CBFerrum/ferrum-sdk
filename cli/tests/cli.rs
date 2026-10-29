@@ -237,7 +237,7 @@ fn publish_and_dev_upload() {
     let (port, server) = serve(vec![201, 200, 403]);
     let base = format!("http://127.0.0.1:{port}");
     assert!(ok(&["publish", "kit.fapp", "--store", &base, "--token", "store-token"], t).contains("201"));
-    assert!(ok(&["dev", "notes-kit", "--server", &format!("{base}/"), "--token", "dev-token"], t).contains("uploaded notes-kit-0.1.0.fapp"));
+    assert!(ok(&["dev", "notes-kit", "--server", &format!("{base}/"), "--token", "dev-token"], t).contains("uploaded notes-kit-0.1.0-dev."));
     assert!(fails(&["publish", "kit.fapp", "--store", &base, "--token", "store-token"], t).contains("HTTP 403"));
     let requests = server.join().unwrap();
 
@@ -251,13 +251,13 @@ fn publish_and_dev_upload() {
     assert_eq!(line, "POST /api/admin/apps/upload HTTP/1.1");
     assert_eq!(header(headers, "authorization"), "Bearer dev-token");
     let boundary = header(headers, "content-type").strip_prefix("multipart/form-data; boundary=").expect("multipart").to_string();
-    let head = format!(
-        "--{boundary}\r\nContent-Disposition: form-data; name=\"bundle\"; filename=\"notes-kit-0.1.0.fapp\"\r\nContent-Type: application/octet-stream\r\n\r\n"
-    );
+    let head = format!("--{boundary}\r\nContent-Disposition: form-data; name=\"bundle\"; filename=\"notes-kit-0.1.0-dev.");
     let tail = format!("\r\n--{boundary}--\r\n");
     assert!(body.starts_with(head.as_bytes()) && body.ends_with(tail.as_bytes()));
-    let uploaded = Bundle::read(&body[head.len()..body.len() - tail.len()]).unwrap();
+    let start = body.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+    let uploaded = Bundle::read(&body[start..body.len() - tail.len()]).unwrap();
     assert_eq!(uploaded.manifest.id, "notes-kit");
+    assert!(uploaded.manifest.version.to_string().starts_with("0.1.0-dev."), "each dev upload is a release of its own");
     assert!(uploaded.signatures.is_none(), "dev uploads the directory as it is, unsigned");
 }
 

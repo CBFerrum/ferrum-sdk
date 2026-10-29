@@ -516,8 +516,43 @@ fn dev(dir: &Path, server: &str, token: &str, watch: bool) -> Result<()> {
     }
 }
 
+/// Gives the app and each of its packages the pre-release version `<version>-dev.<n>` (or
+/// `<pre-release>.dev.<n>`): a server refuses changed content under a version it already has, so
+/// every `dev` upload is a release of its own. Only the uploaded copy changes, not the files.
+fn dev_versions(files: &mut BTreeMap<String, Vec<u8>>, n: u64) {
+    for (path, content) in files.iter_mut() {
+        let manifest = path == "app.yaml" || (path.starts_with("packages/") && path.ends_with("/package.yaml") && path.matches('/').count() == 2);
+        let Ok(text) = std::str::from_utf8(content) else { continue };
+        if !manifest {
+            continue;
+        }
+        let mut done = false;
+        let lines: Vec<String> = text
+            .lines()
+            .map(|line| match line.strip_prefix("version:") {
+                Some(v) if !done => {
+                    done = true;
+                    let v = v.trim().trim_matches(|c| c == '"' || c == '\'');
+                    let base = v.split('+').next().unwrap_or(v);
+                    let dev = if base.contains('-') { format!("{base}.dev.{n}") } else { format!("{base}-dev.{n}") };
+                    format!("version: \"{dev}\"")
+                }
+                _ => line.to_string(),
+            })
+            .collect();
+        let mut out = lines.join("\n");
+        if text.ends_with('\n') {
+            out.push('\n');
+        }
+        *content = out.into_bytes();
+    }
+}
+
 fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<String> {
-    let b = load(dir)?;
+    let mut files = collect(dir)?;
+    let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    dev_versions(&mut files, n);
+    let b = Bundle::from_files(files).map_err(|e| e.to_string())?;
     for w in check(&b, None)? {
         eprintln!("warning: {w}");
     }
@@ -529,4 +564,23 @@ fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<String> {
         return Err(format!("the server refused {file_name} (HTTP {status}): {text}"));
     }
     Ok(format!("uploaded {file_name} (HTTP {status}) {text}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dev_versions;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn dev_uploads_get_their_own_versions() {
+        let mut files = BTreeMap::from([
+            ("app.yaml".to_string(), b"id: kit\nversion: 0.2.0\nplatform: \">=0.3\"\n".to_vec()),
+            ("packages/kit/package.yaml".to_string(), b"package: kit\nversion: \"1.0.0-beta.2\"\n".to_vec()),
+            ("packages/kit/entities/note.yaml".to_string(), b"version: untouched\n".to_vec()),
+        ]);
+        dev_versions(&mut files, 42);
+        assert_eq!(files["app.yaml"], b"id: kit\nversion: \"0.2.0-dev.42\"\nplatform: \">=0.3\"\n");
+        assert_eq!(files["packages/kit/package.yaml"], b"package: kit\nversion: \"1.0.0-beta.2.dev.42\"\n");
+        assert_eq!(files["packages/kit/entities/note.yaml"], b"version: untouched\n", "only manifests change");
+    }
 }
