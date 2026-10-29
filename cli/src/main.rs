@@ -600,7 +600,7 @@ fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<(String, St
     if !(200..300).contains(&status) {
         return Err(format!("the server refused {file_name} (HTTP {status}): {text}"));
     }
-    Ok((format!("uploaded {file_name} (HTTP {status}) {text}"), b.manifest.id.clone(), b.manifest.version.to_string()))
+    Ok((format!("uploaded {file_name} (HTTP {status})"), b.manifest.id.clone(), b.manifest.version.to_string()))
 }
 
 #[cfg(test)]
