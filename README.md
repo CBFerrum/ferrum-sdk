@@ -56,15 +56,16 @@ For wasm apps also: `rustup target add wasm32-unknown-unknown`.
     ferrum-app new notes-kit --runtime meta --publisher acme
     cd notes-kit
     ferrum-app check
-    ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch
+    ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch --install
 
 `new` creates `app.yaml`, `README.md` (the app's store page), `CHANGELOG.md`, `LICENSE` (MIT;
 change it as you like), `.gitignore` and `packages/notes-kit/` with one entity (`NotesKitNote`)
 and one role. `dev` packs the directory and uploads it to a server as a private app (an
 administrator token is needed, and the server must allow uploads), again on every change with
 `--watch`. Each upload is versioned `<version>-dev.<timestamp>` (the app and its packages, in the
-uploaded copy only), so the server takes every change as a new release; update the app on the
-Apps page to try it.
+uploaded copy only), so the server takes every change as a new release. With `--install` each
+upload is also installed in the token's workspace (or updates it there), agreeing to its install
+plan, so the change is live at once; without it, update the app on the Apps page to try it.
 
 ### A wasm app (sandboxed code)
 
@@ -207,7 +208,7 @@ upgrade that adds any line stops for a new consent. The plugin's `fuel_limit` is
   `plugin.json` names only existing entities, and a role that already exists on the platform
   is extended only with grants on the app's own entities (native apps may extend it freely,
   as the platform's own packages do).
-* `ferrum-app dev --watch` keeps a local server up to date while you work.
+* `ferrum-app dev --watch --install` keeps a local workspace up to date while you work.
 * Unit-test plugin logic as ordinary Rust (the `handle` function takes a `Request` and returns
   JSON); `ferrum_plugins::PluginHost::execute` in the Ferrum repository runs a compiled module
   without a server.

@@ -150,6 +150,10 @@ enum Command {
         /// Upload again whenever a file of the app changes
         #[arg(long)]
         watch: bool,
+        /// After each upload, install it in the token's workspace (or update it there), agreeing
+        /// to its install plan: its permissions and dependencies
+        #[arg(long)]
+        install: bool,
     },
 }
 
@@ -240,7 +244,7 @@ fn run(command: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Dev { dir, server, token, watch } => dev(&dir, &server, &token, watch),
+        Command::Dev { dir, server, token, watch, install } => dev(&dir, &server, &token, watch, install),
     }
 }
 
@@ -495,13 +499,19 @@ fn stamp(dir: &Path) -> Result<Vec<(String, u64, Option<SystemTime>)>> {
     Ok(out)
 }
 
-fn dev(dir: &Path, server: &str, token: &str, watch: bool) -> Result<()> {
+fn dev(dir: &Path, server: &str, token: &str, watch: bool, install: bool) -> Result<()> {
     let url = upload::endpoint(server, "api/admin/apps/upload")?;
     let mut last = None;
     loop {
         let now = stamp(dir);
         if last.as_ref() != Some(&now) {
-            let outcome = now.clone().and_then(|_| dev_upload(dir, &url, token));
+            let outcome = now.clone().and_then(|_| dev_upload(dir, &url, token)).and_then(|(message, id, version)| {
+                if !install {
+                    return Ok(message);
+                }
+                println!("{message}");
+                dev_install(server, token, &id, &version)
+            });
             last = Some(now);
             match outcome {
                 Ok(message) => println!("{message}"),
@@ -548,7 +558,34 @@ fn dev_versions(files: &mut BTreeMap<String, Vec<u8>>, n: u64) {
     }
 }
 
-fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<String> {
+/// Installs (or updates to) an uploaded version in the token's workspace, agreeing to its plan.
+fn dev_install(server: &str, token: &str, app: &str, version: &str) -> Result<String> {
+    let plan_url = upload::endpoint(server, &format!("api/admin/apps/{app}/plan?version={version}"))?;
+    let (status, text) = upload::get(&plan_url, token)?;
+    if status != 200 {
+        return Err(format!("the server would not plan {app} {version} (HTTP {status}): {text}"));
+    }
+    let plan: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("the server's plan is not JSON: {e}"))?;
+    let digest = plan.get("digest").and_then(serde_json::Value::as_str).ok_or("the server's plan has no digest")?;
+    for w in plan
+        .get("warnings")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .chain(plan.get("increases").and_then(serde_json::Value::as_array).into_iter().flatten())
+    {
+        eprintln!("note: {}", w.as_str().map(str::to_string).unwrap_or_else(|| w.to_string()));
+    }
+    let url = upload::endpoint(server, &format!("api/admin/apps/{app}/install"))?;
+    let body = serde_json::json!({"version": version, "consent": digest}).to_string().into_bytes();
+    let (status, text) = upload::post(&url, token, "application/json", body)?;
+    if !(200..300).contains(&status) {
+        return Err(format!("installing {app} {version} failed (HTTP {status}): {text}"));
+    }
+    Ok(format!("installed {app} {version}"))
+}
+
+fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<(String, String, String)> {
     let mut files = collect(dir)?;
     let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     dev_versions(&mut files, n);
@@ -563,7 +600,7 @@ fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<String> {
     if !(200..300).contains(&status) {
         return Err(format!("the server refused {file_name} (HTTP {status}): {text}"));
     }
-    Ok(format!("uploaded {file_name} (HTTP {status}) {text}"))
+    Ok((format!("uploaded {file_name} (HTTP {status}) {text}"), b.manifest.id.clone(), b.manifest.version.to_string()))
 }
 
 #[cfg(test)]
