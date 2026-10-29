@@ -15,7 +15,7 @@ This is a Ferrum app ({{runtime}} runtime). It needs the `ferrum-app` CLI from
 [ferrum-sdk](https://github.com/CBFerrum/ferrum-sdk).
 
     ferrum-app check                  # validate the manifest, packages and plugin
-    ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch
+    ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch --install
 
 {{build_section}}
 ## Release
