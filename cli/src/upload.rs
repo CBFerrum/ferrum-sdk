@@ -34,6 +34,15 @@ pub(crate) fn multipart(field: &str, file_name: &str, data: &[u8], seed: &str) -
 /// POSTs `body` with the bearer `token`; returns the status code and the response text.
 /// Redirects are not followed (they could carry the token elsewhere).
 pub(crate) fn post(url: &Url, token: &str, content_type: &str, body: Vec<u8>) -> Result<(u16, String), String> {
+    request(reqwest::Method::POST, url, token, Some((content_type, body)))
+}
+
+/// GETs `url` with the bearer `token`, like [`post`].
+pub(crate) fn get(url: &Url, token: &str) -> Result<(u16, String), String> {
+    request(reqwest::Method::GET, url, token, None)
+}
+
+fn request(method: reqwest::Method, url: &Url, token: &str, body: Option<(&str, Vec<u8>)>) -> Result<(u16, String), String> {
     let token = token.trim();
     if token.is_empty() {
         return Err("the token is empty".into());
@@ -46,14 +55,11 @@ pub(crate) fn post(url: &Url, token: &str, content_type: &str, body: Vec<u8>) ->
             .user_agent(concat!("ferrum-app/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|e| format!("cannot start the HTTP client: {e}"))?;
-        let response = client
-            .post(url.clone())
-            .bearer_auth(token)
-            .header(reqwest::header::CONTENT_TYPE, content_type)
-            .body(body)
-            .send()
-            .await
-            .map_err(|e| format!("{url}: {e}"))?;
+        let mut req = client.request(method, url.clone()).bearer_auth(token);
+        if let Some((content_type, body)) = body {
+            req = req.header(reqwest::header::CONTENT_TYPE, content_type).body(body);
+        }
+        let response = req.send().await.map_err(|e| format!("{url}: {e}"))?;
         let status = response.status().as_u16();
         let text = response.text().await.map_err(|e| format!("{url}: {e}"))?;
         Ok((status, text))

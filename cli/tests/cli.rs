@@ -183,12 +183,17 @@ type Recorded = (String, Vec<(String, String)>, Vec<u8>);
 
 /// Answers one connection per status (in order) and returns what was sent.
 fn serve(statuses: Vec<u16>) -> (u16, thread::JoinHandle<Vec<Recorded>>) {
+    serve_replies(statuses.into_iter().map(|s| (s, r#"{"ok":true}"#)).collect())
+}
+
+/// [`serve`] with a reply body per connection.
+fn serve_replies(replies: Vec<(u16, &'static str)>) -> (u16, thread::JoinHandle<Vec<Recorded>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let handle = thread::spawn(move || {
-        statuses
+        replies
             .into_iter()
-            .map(|status| {
+            .map(|(status, reply)| {
                 let (mut stream, _) = listener.accept().unwrap();
                 let mut reader = BufReader::new(stream.try_clone().unwrap());
                 let mut request_line = String::new();
@@ -207,7 +212,6 @@ fn serve(statuses: Vec<u16>) -> (u16, thread::JoinHandle<Vec<Recorded>>) {
                 let len: usize = headers.iter().find(|(k, _)| k == "content-length").map_or(0, |(_, v)| v.parse().unwrap());
                 let mut body = vec![0; len];
                 reader.read_exact(&mut body).unwrap();
-                let reply = r#"{"ok":true}"#;
                 write!(
                     stream,
                     "HTTP/1.1 {status} Done\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{reply}",
@@ -259,6 +263,17 @@ fn publish_and_dev_upload() {
     assert_eq!(uploaded.manifest.id, "notes-kit");
     assert!(uploaded.manifest.version.to_string().starts_with("0.1.0-dev."), "each dev upload is a release of its own");
     assert!(uploaded.signatures.is_none(), "dev uploads the directory as it is, unsigned");
+
+    // With --install, each upload is installed in the workspace, agreeing to the plan it gets.
+    let (port, server) = serve_replies(vec![(201, r#"{"ok":true}"#), (200, r#"{"digest":"d1g35t","increases":["reads Customer"]}"#), (200, r#"{"ok":true}"#)]);
+    let out = ok(&["dev", "notes-kit", "--server", &format!("http://127.0.0.1:{port}"), "--token", "dev-token", "--install"], t);
+    assert!(out.contains("installed notes-kit 0.1.0-dev."), "{out}");
+    let requests = server.join().unwrap();
+    let version = requests[1].0.split("version=").nth(1).and_then(|v| v.split(' ').next()).unwrap().to_string();
+    assert!(requests[1].0.starts_with("GET /api/admin/apps/notes-kit/plan?version=0.1.0-dev."), "{}", requests[1].0);
+    assert_eq!(requests[2].0, "POST /api/admin/apps/notes-kit/install HTTP/1.1");
+    let sent: serde_json::Value = serde_json::from_slice(&requests[2].2).unwrap();
+    assert_eq!(sent, serde_json::json!({"version": version, "consent": "d1g35t"}));
 }
 
 #[test]
