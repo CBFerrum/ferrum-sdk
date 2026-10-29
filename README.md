@@ -109,9 +109,12 @@ code that needs raw sockets, direct transactional SQL or speed. `new` scaffolds 
 docs and packages; the crate (`ferrum-app-<id>`, with its `Cargo.toml` next to `app.yaml`)
 depends on the platform crates by git tag, embeds `packages/` at compile time and exposes
 `MANIFEST`, `packages()`, `register(&mut HookRegistry)`, `reports()` and
-`maintenance(&Kernel)`; see `ferrum-app-crm` for a complete example. The bundle a native app
-directory packs carries its manifest and packages for the store; the code ships in the server
-image.
+`maintenance(&Kernel)`; see `ferrum-app-crm` for a complete example. Its `DocHook`s take part in
+every document's life (`before_validate` … `on_cancel`, actions) and may extend the platform's
+own actions with `after_action` (Manufacturing Operations re-costs a BOM's operations when "Update
+Cost" re-costs its materials). Public endpoints can throttle across replicas with
+`Kernel::rate_limit`. The bundle a native app directory packs carries its manifest and packages
+for the store; the code ships in the server image.
 
 ## Manifest reference (`app.yaml`)
 
