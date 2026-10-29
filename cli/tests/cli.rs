@@ -65,6 +65,13 @@ fn sign_both(bundle: &str, t: &Path) -> (String, String) {
 }
 
 #[test]
+fn the_board_example_is_a_valid_app() {
+    let examples = Path::new(env!("CARGO_MANIFEST_DIR")).join("../examples");
+    let out = ok(&["check", "board"], &examples);
+    assert!(out.contains("ok: board 1.0.1 (meta app, "), "{out}");
+}
+
+#[test]
 fn meta_app_end_to_end() {
     let tmp = tempfile::tempdir().unwrap();
     let t = tmp.path();
