@@ -230,6 +230,12 @@ ferrum.on("location", ({ path }) => route(path)); // back and forward
 const res = await ferrum.fetch("/api/v1/Customer?limit=1"); // straight to the API, with an app token
 ```
 
+Where the server gives apps origins of their own (`FERRUM_APPS_BASE`), the frame holds
+`{app}--{workspace}.{apps base}` instead: storage and workers of the app's own. Opened on its own
+there, the page has no host, and `ferrum.js` signs in through the workspace (OAuth with PKCE),
+keeps the session for the tab and makes the same calls itself, so the code above runs unchanged.
+Refer to the interface's files by relative URLs: they sit at different paths in the two cases.
+
 An app without a plugin declares what its pages may reach in app.yaml's `access`
 (`[{entity: Customer, read: true}]`). `examples/customer-cards` is a complete example: an interface
 with no build step that reads customers, follows the address bar, and shows how it is kept apart.

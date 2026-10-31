@@ -13,6 +13,23 @@
 // to what the app declared. Protocol 1: the host posts {ferrum: "init", version} with a MessagePort;
 // requests {id, method, params} are answered with {id, result} or {id, error: {status, message}};
 // events arrive as {event, data}.
+//
+// On an origin of its own (`{app}--{workspace}.{apps base}`, when the server gives apps one) and
+// opened outside the workspace's page, there is no host: the page signs in with OAuth (code and
+// PKCE, the server's #ferrum-bootstrap says where) and calls the API itself with short-lived app
+// tokens, renewed while it is open. The same calls work either way.
+
+function readBootstrap() {
+  try {
+    return JSON.parse(document.getElementById("ferrum-bootstrap")?.textContent ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+const boot = readBootstrap();
+// Opened on its own origin, outside the workspace's page.
+const standalone = window.parent === window && !!boot?.oauth;
 
 let port = null;
 let next = 1;
@@ -22,6 +39,7 @@ let started;
 const ready = new Promise((resolve) => (started = resolve));
 
 function call(method, params) {
+  if (standalone) return local(method, params ?? {});
   if (!port) return ready.then(() => call(method, params));
   return new Promise((resolve, reject) => {
     const id = next++;
@@ -63,11 +81,188 @@ window.addEventListener("message", (e) => {
 // An app token for calling the API directly, kept until shortly before it expires.
 let token = null;
 async function bearer() {
+  if (standalone) return (await signedIn()).access;
   if (!token || Date.now() > token.until) {
     const t = await call("token");
     token = { value: t.token, until: Date.now() + (t.expires_in - 30) * 1000 };
   }
   return token.value;
+}
+
+// ───────────── on its own origin: OAuth with PKCE, and the calls made here ─────────────
+
+const SESSION = "ferrum.app.session";
+const PENDING = "ferrum.app.pkce";
+const keep = {
+  get(k) {
+    try {
+      return JSON.parse(sessionStorage.getItem(k) ?? "null");
+    } catch {
+      return null;
+    }
+  },
+  set(k, v) {
+    try {
+      if (v == null) sessionStorage.removeItem(k);
+      else sessionStorage.setItem(k, JSON.stringify(v));
+    } catch {}
+  },
+};
+const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const randomText = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
+
+async function tokens(form) {
+  const r = await fetch(boot.oauth.token, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    body: new URLSearchParams({ client_id: boot.oauth.client_id, ...form }),
+    credentials: "omit",
+  });
+  const t = await r.json().catch(() => null);
+  if (!r.ok) throw Object.assign(new Error(t?.error_description ?? t?.message ?? "signing in failed"), { status: r.status });
+  const s = { access: t.access_token, refresh: t.refresh_token, until: Date.now() + (t.expires_in - 30) * 1000, user: t.user ?? keep.get(SESSION)?.user ?? {} };
+  keep.set(SESSION, s);
+  return s;
+}
+
+/** To the workspace to sign in (and allow this app), and back to where the page was. */
+async function signIn() {
+  const verifier = randomText(48);
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  const state = randomText(18);
+  keep.set(PENDING, { verifier, state, back: location.pathname + location.search });
+  const q = new URLSearchParams({
+    response_type: "code",
+    client_id: boot.oauth.client_id,
+    redirect_uri: boot.oauth.redirect_uri,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+    state,
+  });
+  location.assign(`${boot.oauth.authorize}?${q}`);
+  return new Promise(() => {});
+}
+
+/** A session that works now: the one kept, renewed, or a new one. One renewal at a time: a refresh
+ *  token works once, and presenting it twice ends the session. */
+let renewing = null;
+function signedIn() {
+  const s = keep.get(SESSION);
+  if (s && Date.now() < s.until) return Promise.resolve(s);
+  renewing ??= (async () => {
+    if (s?.refresh) {
+      try {
+        return await tokens({ grant_type: "refresh_token", refresh_token: s.refresh });
+      } catch {
+        keep.set(SESSION, null);
+      }
+    }
+    return signIn();
+  })().finally(() => (renewing = null));
+  return renewing;
+}
+
+/** The app token stopped working (signed out everywhere, say): the next call renews it. */
+function expire() {
+  token = null;
+  const s = keep.get(SESSION);
+  if (s) keep.set(SESSION, { ...s, until: 0 });
+}
+
+async function local(method, p) {
+  const ws = boot.workspace?.origin ?? "";
+  switch (method) {
+    case "api": {
+      const q = new URLSearchParams();
+      for (const [k, v] of Object.entries(p.query ?? {})) q.append(k, String(v));
+      const headers = { accept: "application/json" };
+      if (p.ifMatch != null) headers["if-match"] = `"${p.ifMatch}"`;
+      let body;
+      if (p.body !== undefined && !["GET", "DELETE"].includes((p.method ?? "GET").toUpperCase())) {
+        headers["content-type"] = "application/json";
+        body = JSON.stringify(p.body);
+      }
+      const send = async () =>
+        fetch(`${p.path}${q.toString() ? `?${q}` : ""}`, { method: p.method ?? "GET", headers: { ...headers, authorization: `Bearer ${await bearer()}` }, body, credentials: "omit" });
+      let r = await send();
+      // Refused before it did anything: once more with a renewed token (or after signing in again).
+      if (r.status === 401) {
+        expire();
+        r = await send();
+      }
+      const data = r.status === 204 ? null : await r.json().catch(() => null);
+      if (!r.ok) throw Object.assign(new Error(data?.fields?.[0]?.message ?? data?.message ?? `the request failed (${r.status})`), { status: r.status });
+      return data;
+    }
+    case "token": {
+      const s = await signedIn();
+      return { token: s.access, expires_in: Math.max(1, Math.round((s.until - Date.now()) / 1000)) };
+    }
+    case "navigate":
+      if (p.replace) history.replaceState(null, "", p.to);
+      else history.pushState(null, "", p.to);
+      return null;
+    case "open":
+      location.assign(`${ws}${p.url}`);
+      return null;
+    case "openRecord":
+      location.assign(`${ws}/open/${encodeURIComponent(p.entity)}/${encodeURIComponent(p.id)}`);
+      return null;
+    case "title":
+      document.title = p.text || document.title;
+      return null;
+    case "toast":
+      console.info(p.message);
+      return null;
+    case "confirm":
+      return window.confirm(p.message ? `${p.title}\n\n${p.message}` : p.title);
+    default:
+      return null;
+  }
+}
+
+if (standalone) {
+  (async () => {
+    // Back from signing in: the code for tokens, then where the page was.
+    if (location.pathname === "/_ferrum/callback") {
+      const q = new URLSearchParams(location.search);
+      const pending = keep.get(PENDING);
+      keep.set(PENDING, null);
+      const failed = (text) => {
+        const again = document.createElement("a");
+        again.href = pending?.back || "/";
+        again.textContent = "Try again";
+        const line = document.createElement("p");
+        line.append(`${text} `, again);
+        document.body.replaceChildren(line);
+      };
+      if (!q.get("code") || !pending || q.get("state") !== pending.state) {
+        failed(q.get("error") === "access_denied" ? "You did not allow this app." : "Signing in did not work.");
+        return;
+      }
+      try {
+        await tokens({ grant_type: "authorization_code", code: q.get("code"), redirect_uri: boot.oauth.redirect_uri, code_verifier: pending.verifier });
+      } catch (e) {
+        failed(`Signing in did not work: ${e.message}.`);
+        return;
+      }
+      history.replaceState(null, "", pending.back || "/");
+    }
+    const s = await signedIn();
+    started({
+      app: boot.app.id,
+      slot: "page",
+      standalone: true,
+      path: location.pathname + location.search,
+      user: s.user ?? {},
+      workspace: boot.workspace?.name ?? "",
+      locale: navigator.language,
+      theme: null,
+    });
+  })();
+  window.addEventListener("popstate", () => {
+    for (const fn of listeners.get("location") ?? []) fn({ path: location.pathname + location.search });
+  });
 }
 
 export const ferrum = {
@@ -79,7 +274,9 @@ export const ferrum = {
   async fetch(path, init = {}) {
     const headers = new Headers(init.headers);
     headers.set("authorization", `Bearer ${await bearer()}`);
-    return fetch(path, { ...init, headers, credentials: "omit" });
+    const r = await fetch(path, { ...init, headers, credentials: "omit" });
+    if (r.status === 401) expire();
+    return r;
   },
   /** Screens: a path of the web app. Pages: where the page went, so the address bar follows. */
   navigate: (to, { replace = false } = {}) => call("navigate", { to, replace }),
