@@ -209,6 +209,31 @@ Scripts must be files: the screens' Content Security Policy allows no inline scr
 cannot be submitted, so use buttons. `examples/board` shows all of it: a page, a widget, a panel,
 a settings screen and the `board.card` extension point.
 
+## Interfaces of their own
+
+An app may own a whole interface at addresses of its own (`ui` and `shell.app` in app.yaml; Ferrum's
+`docs/plugins.md`, "Interfaces of their own"). An app the server trusts runs it on the workspace's
+host with the person's session. An unsigned app uploaded to one workspace runs it **isolated**: its
+pages are Ferrum's bar and a sandboxed frame with no session, no storage of the site and no network
+but its own files, talking to Ferrum through `ferrum.js` (copy
+`examples/customer-cards/ui/ferrum.js`), within what the app declared.
+
+```js
+import { ferrum } from "./ferrum.js";
+
+const ctx = await ferrum.ready;                 // app, user, locale, theme, and path under the route
+const { rows } = await ferrum.api("GET", "/api/v1/Customer", { query: { limit: 20 } });
+ferrum.title("Customers");                      // the bar's and the tab's title
+ferrum.started();                               // drawn: otherwise the platform offers a reload
+ferrum.navigate("/?q=acme", { replace: true }); // the address bar follows the page
+ferrum.on("location", ({ path }) => route(path)); // back and forward
+const res = await ferrum.fetch("/api/v1/Customer?limit=1"); // straight to the API, with an app token
+```
+
+An app without a plugin declares what its pages may reach in app.yaml's `access`
+(`[{entity: Customer, read: true}]`). `examples/customer-cards` is a complete example: an interface
+with no build step that reads customers, follows the address bar, and shows how it is kept apart.
+
 ## Permissions
 
 `ferrum-app inspect app.fapp` shows what installing asks for, the way the consent screen does:

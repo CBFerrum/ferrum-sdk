@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer cards</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<main id="main">
+  <header class="head">
+    <div>
+      <h1>Customer cards</h1>
+      <p id="who" class="muted"></p>
+    </div>
+    <input id="q" type="search" placeholder="Search customers" aria-label="Search customers">
+  </header>
+  <ul id="cards" class="cards" aria-live="polite"><li class="muted">Loading…</li></ul>
+  <details id="apart">
+    <summary>How it is kept apart</summary>
+    <ul id="checks" class="checks"></ul>
+  </details>
+</main>
+</body>
+</html>
