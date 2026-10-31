@@ -84,9 +84,11 @@ enum Command {
     Check {
         #[arg(default_value = ".")]
         dir: PathBuf,
-        /// Also validate the packages together with the platform's (a directory of packages)
+        /// Also validate the packages together with the platform's: a directory of packages, once
+        /// per directory (Ferrum's packages/, and ERP's packages/ and addons/india/packages for
+        /// apps that build on ERP's documents)
         #[arg(long, value_name = "DIR")]
-        platform_packages: Option<PathBuf>,
+        platform_packages: Vec<PathBuf>,
     },
     /// Check an app directory and build its deterministic .fapp bundle
     Pack {
@@ -95,9 +97,11 @@ enum Command {
         /// Bundle to write [default: <id>-<version>.fapp]
         #[arg(short, long)]
         output: Option<PathBuf>,
-        /// Also validate the packages together with the platform's (a directory of packages)
+        /// Also validate the packages together with the platform's: a directory of packages, once
+        /// per directory (Ferrum's packages/, and ERP's packages/ and addons/india/packages for
+        /// apps that build on ERP's documents)
         #[arg(long, value_name = "DIR")]
-        platform_packages: Option<PathBuf>,
+        platform_packages: Vec<PathBuf>,
     },
     /// Create an Ed25519 signing key (PKCS#8 DER) and print its public key as a trusted key
     Keygen {
@@ -201,7 +205,7 @@ fn run(command: Command) -> Result<()> {
         }
         Command::Check { dir, platform_packages } => {
             let bundle = load(&dir)?;
-            for w in check(&bundle, platform_packages.as_deref())? {
+            for w in check(&bundle, &platform_packages)? {
                 eprintln!("warning: {w}");
             }
             let m = &bundle.manifest;
@@ -210,7 +214,7 @@ fn run(command: Command) -> Result<()> {
         }
         Command::Pack { dir, output, platform_packages } => {
             let bundle = load(&dir)?;
-            for w in check(&bundle, platform_packages.as_deref())? {
+            for w in check(&bundle, &platform_packages)? {
                 eprintln!("warning: {w}");
             }
             let bytes = bundle.write().map_err(|e| e.to_string())?;
@@ -429,7 +433,7 @@ fn size(bytes: u64) -> String {
 /// What the server checks beyond the bundle format: the plugin as the plugin host reads it and,
 /// given the platform's packages, the packages as the catalog and a workspace schema take them.
 /// Returns warnings; errors stop.
-fn check(b: &Bundle, platform_packages: Option<&Path>) -> Result<Vec<String>> {
+fn check(b: &Bundle, platform_packages: &[PathBuf]) -> Result<Vec<String>> {
     let mut warnings = Vec::new();
     let platform = semver::Version::parse(PLATFORM_VERSION).map_err(|e| e.to_string())?;
     if !b.manifest.compatible_with(&platform) {
@@ -449,14 +453,35 @@ fn check(b: &Bundle, platform_packages: Option<&Path>) -> Result<Vec<String>> {
         }
         None => None,
     };
-    if let Some(dir) = platform_packages {
-        warnings.extend(check_with_platform(b, dir, plugin.as_ref())?);
+    if !platform_packages.is_empty() {
+        warnings.extend(check_with_platform(b, platform_packages, plugin.as_ref())?);
     }
     Ok(warnings)
 }
 
-fn check_with_platform(b: &Bundle, dir: &Path, plugin: Option<&NewPlugin>) -> Result<Vec<String>> {
-    let platform = Catalog::load_dir(dir).map_err(|e| format!("platform packages in {}: {e}", dir.display()))?;
+/// The platform's packages from every directory given, as one catalog: since ERP's packages moved
+/// to ERP's repository, an app that builds on ERP's documents names Ferrum's directory and ERP's.
+fn platform_catalog(dirs: &[PathBuf]) -> Result<Catalog> {
+    let mut packages = Vec::new();
+    for dir in dirs {
+        let mut found: Vec<PathBuf> = fs::read_dir(dir)
+            .map_err(|e| format!("platform packages in {}: {e}", dir.display()))?
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.join("package.yaml").is_file())
+            .collect();
+        if found.is_empty() {
+            return Err(format!("platform packages in {}: no package here (a directory of <name>/package.yaml)", dir.display()));
+        }
+        found.sort();
+        for p in found {
+            packages.push(ferrum_meta::catalog::load_package_dir(&p).map_err(|e| format!("platform packages in {}: {e}", dir.display()))?);
+        }
+    }
+    Catalog::from_packages(packages).map_err(|e| format!("platform packages: {e}"))
+}
+
+fn check_with_platform(b: &Bundle, dirs: &[PathBuf], plugin: Option<&NewPlugin>) -> Result<Vec<String>> {
+    let platform = platform_catalog(dirs)?;
     let app = b.packages().map_err(|e| e.to_string())?;
     let names: BTreeSet<String> = app.iter().map(|p| p.name().to_string()).collect();
     // The app's packages replace same-named copies in the platform tree (apps moving out of it).
@@ -687,7 +712,7 @@ fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<(String, St
     let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     dev_versions(&mut files, n);
     let b = Bundle::from_files(files).map_err(|e| e.to_string())?;
-    for w in check(&b, None)? {
+    for w in check(&b, &[])? {
         eprintln!("warning: {w}");
     }
     let bytes = b.write().map_err(|e| e.to_string())?;
