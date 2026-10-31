@@ -312,10 +312,19 @@ fn walk(root: &Path, rel: &str, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata
 
 /// Visits every file of an app directory that belongs in its bundle. Of `ui/`: nothing for a native
 /// app (its crate embeds its interface), only the built directory of an interface built under it
-/// (`ui.dist: ui/dist`; its sources stay out), else all of it.
+/// (`ui.dist: ui/dist`; its sources stay out), else all of it. Of `packages/`: a native app's listed
+/// packages (see [`native_packages`]), else all of it.
 fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Result<()>) -> Result<()> {
-    for rel in ROOT_FILES.iter().chain(&["packages", "assets"]) {
+    for rel in ROOT_FILES.iter().chain(&["assets"]) {
         walk(dir, rel, visit)?;
+    }
+    match native_packages(dir) {
+        Some(listed) => {
+            for name in listed {
+                walk(dir, &format!("packages/{name}"), visit)?;
+            }
+        }
+        None => walk(dir, "packages", visit)?,
     }
     match ui_dir(dir) {
         Some(ui) => walk(dir, &ui, visit),
@@ -335,6 +344,28 @@ fn ui_dir(dir: &Path) -> Option<String> {
         return dist;
     }
     Some(dist.unwrap_or_else(|| "ui".into()))
+}
+
+/// A native app's packages as its manifest lists them, or `None` for any other app (and when the
+/// manifest does not parse; the bundle's check reports it). A native app's repository may also hold
+/// packages its crate installs itself, such as a connector's when the app it joins is installed
+/// too (CRM's `crm_erp`); they are not the app's to declare, so its bundle leaves them out.
+fn native_packages(dir: &Path) -> Option<Vec<String>> {
+    let m = fs::read_to_string(dir.join("app.yaml")).ok().and_then(|yaml| ferrum_apps::AppManifest::parse(&yaml).ok())?;
+    if m.runtime != ferrum_apps::Runtime::Native {
+        return None;
+    }
+    if let Ok(entries) = fs::read_dir(dir.join("packages")) {
+        let mut others: Vec<String> = entries
+            .filter_map(|e| e.ok()?.file_name().into_string().ok())
+            .filter(|n| !n.starts_with('.') && !m.packages.contains(n) && dir.join("packages").join(n).is_dir())
+            .collect();
+        others.sort();
+        for name in others {
+            eprintln!("note: packages/{name}/ stays out of the bundle: app.yaml does not list it (the app's crate installs it)");
+        }
+    }
+    Some(m.packages)
 }
 
 /// Whether a path of an app directory goes into its bundle (what `walk_app` visits).
@@ -706,6 +737,30 @@ mod tests {
                 .replace("ui:\n  dist: ui/dist\ncontributes:\n  shell.app:\n    - {id: till, route: till, title: Till}\n", ""),
         );
         assert!(!collect(&dir).expect("a bundle").keys().any(|p| p.starts_with("ui/")));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_native_bundle_takes_its_listed_packages_only() {
+        let dir = std::env::temp_dir().join(format!("ferrum-app-native-packages-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let write = |rel: &str, text: &str| {
+            let path = dir.join(rel);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        };
+        let manifest = "id: desk\nname: Desk\nversion: 0.1.0\npublisher: acme\nsummary: A desk\ncategories: [crm]\nruntime: native\nplatform: \">=0.3, <0.4\"\n\
+                        packages: [desk]\n";
+        write("app.yaml", manifest);
+        write("packages/desk/package.yaml", "package: desk\nversion: 0.1.0\n");
+        // A connector package the app's crate installs when the app it joins is there.
+        write("packages/desk_erp/package.yaml", "package: desk_erp\nversion: 0.1.0\n");
+        let files = collect(&dir).expect("a bundle");
+        assert!(files.contains_key("packages/desk/package.yaml"));
+        assert!(!files.keys().any(|p| p.starts_with("packages/desk_erp/")), "{:?}", files.keys());
+        // Any other app's bundle takes all of packages/, and its check refuses what app.yaml does not list.
+        write("app.yaml", &manifest.replace("runtime: native", "runtime: meta"));
+        assert!(collect(&dir).expect("a bundle").contains_key("packages/desk_erp/package.yaml"));
         fs::remove_dir_all(&dir).unwrap();
     }
 

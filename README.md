@@ -209,8 +209,9 @@ complete example. Its `DocHook`s take part in every document's life (`before_val
 (Manufacturing Operations re-costs a BOM's operations when "Update Cost" re-costs its materials).
 Rows an app keeps in another document's table (a work order's crew) are written with
 `Kernel::set_child_rows_tx`; public endpoints throttle across replicas with `Kernel::rate_limit`.
-The bundle a native app directory packs carries its manifest and packages for the store; the code
-ships in the server image.
+The bundle a native app directory packs carries its manifest and the packages it lists for the
+store; the code ships in the server image. Other packages in its `packages/` (a connector's, which
+its crate installs when the app it joins is installed too) stay out, with a note.
 
 ## Manifest reference (`app.yaml`)
 
