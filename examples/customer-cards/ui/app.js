@@ -56,11 +56,21 @@ async function checks() {
   } catch {
     show(true, "No cookie of the workspace's site can be read here (an origin of its own).");
   }
-  try {
-    localStorage.getItem("x");
-    show(false, "This page can use the site's storage.");
-  } catch {
-    show(true, "The site's storage is out of reach (an origin of its own).");
+  // In a sandboxed frame the page has no origin; on an address of its own (when the server gives
+  // apps one), its storage is that origin's, never the workspace's.
+  if (self.origin === "null") {
+    try {
+      localStorage.getItem("x");
+      show(false, "This page can use the site's storage.");
+    } catch {
+      show(true, "The site's storage is out of reach (an origin of its own).");
+    }
+  } else {
+    let workspace = "";
+    try {
+      workspace = JSON.parse(document.getElementById("ferrum-bootstrap")?.textContent ?? "{}").workspace?.origin ?? "";
+    } catch {}
+    show(self.origin !== workspace, `Its storage is its own origin's (${self.origin}), not the workspace's.`);
   }
   const refused = async (label, run) => {
     try {
@@ -86,12 +96,17 @@ async function checks() {
     show(true, "Without a token, the API refuses to answer this page.");
   }
   try {
-    await fetch("/api/admin/users");
-    show(false, "The rest of the API is reachable.");
+    const r = await fetch("/api/admin/users");
+    show(!r.ok, `The rest of the API is out of reach (${r.status}).`);
   } catch {
     show(true, "The rest of the API is out of reach (its page's policy).");
   }
 }
+
+// Before waiting for the host, so opening the panel early still runs the checks (they wait too).
+document.querySelector("#apart").addEventListener("toggle", (e) => {
+  if (e.target.open && !document.querySelector("#checks").children.length) checks();
+});
 
 const ctx = await ferrum.ready;
 document.querySelector("#who").textContent = `For ${ctx.user.name || ctx.user.email}${ctx.workspace ? ` at ${ctx.workspace}` : ""}`;
@@ -114,7 +129,4 @@ ferrum.on("location", ({ path }) => {
   const v = new URLSearchParams(path.split("?")[1] ?? "").get("q") ?? "";
   q.value = v;
   load(v);
-});
-document.querySelector("#apart").addEventListener("toggle", (e) => {
-  if (e.target.open && !document.querySelector("#checks").children.length) checks();
 });

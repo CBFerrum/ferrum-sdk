@@ -35,7 +35,7 @@
         "enum": [
           "sales", "crm", "support", "hr", "finance", "inventory", "manufacturing", "projects", "commerce", "pos", "communication",
           "productivity", "marketing", "analytics", "integrations", "localization", "energy", "iot", "education", "healthcare", "industry",
-          "developer"
+          "developer", "suite", "connector"
         ]
       }
     },
@@ -98,6 +98,54 @@
       },
       "additionalProperties": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } } } }
     },
+    "ui": {
+      "description": "The app's own interface, at the routes its shell.app entries name (Ferrum docs/plugins.md, \"Interfaces of their own\").",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dist"],
+      "properties": {
+        "dist": { "description": "Directory in the bundle with the built files and their index.html, such as ui/dist.", "type": "string", "minLength": 1 },
+        "shell": { "description": "Shell API versions it works with, a semver requirement.", "type": "string", "minLength": 1, "default": ">=1.0" },
+        "csp": {
+          "description": "Origins its pages need beyond the workspace's host, by kind: https:// or wss:// origins, or setting:{key} for one an operator sets in the app's settings. Reviewed by the store; an interface that runs isolated may name none.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "connect": { "$ref": "#/definitions/origins" },
+            "frame": { "$ref": "#/definitions/origins" },
+            "img": { "$ref": "#/definitions/origins" },
+            "media": { "$ref": "#/definitions/origins" },
+            "font": { "$ref": "#/definitions/origins" },
+            "worker": { "$ref": "#/definitions/origins" },
+            "form": { "$ref": "#/definitions/origins" }
+          }
+        },
+        "family": { "description": "The name of the family this app heads: its add-ons with interfaces of their own share its navigation.", "type": "string", "minLength": 1, "maxLength": 40 }
+      }
+    },
+    "access": {
+      "description": "Records the app's pages may reach for the person, within the person's own rights, when the app has no plugin declaring them. Consented to at install.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entity"],
+        "properties": {
+          "entity": { "description": "Entity name, or * for every entity.", "type": "string", "minLength": 1 },
+          "read": { "type": "boolean" },
+          "write": { "type": "boolean" },
+          "create": { "type": "boolean" },
+          "delete": { "type": "boolean" },
+          "submit": { "type": "boolean" },
+          "cancel": { "type": "boolean" },
+          "export": { "type": "boolean" },
+          "import": { "type": "boolean" },
+          "if_owner": { "description": "Only records the person created.", "type": "boolean" },
+          "read_groups": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "write_groups": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
     "uninstall": { "description": "Whether removing the app offers to delete its data.", "enum": ["keep", "ask"], "default": "keep" }
   },
   "allOf": [
@@ -108,10 +156,18 @@
     },
     {
       "if": { "properties": { "runtime": { "const": "meta" } }, "required": ["runtime"] },
-      "then": { "required": ["packages"], "properties": { "packages": { "minItems": 1 } } }
+      "then": {
+        "description": "A meta app brings packages, an interface of its own, or the apps of its suite.",
+        "anyOf": [
+          { "required": ["packages"], "properties": { "packages": { "minItems": 1 } } },
+          { "required": ["ui"] },
+          { "required": ["requires"], "properties": { "requires": { "minProperties": 1 } } }
+        ]
+      }
     }
   ],
   "definitions": {
+    "origins": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
     "screen": {
       "type": "object",
       "additionalProperties": false,
