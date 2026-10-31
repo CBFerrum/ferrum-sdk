@@ -42,6 +42,16 @@ pub(crate) fn get(url: &Url, token: &str) -> Result<(u16, String), String> {
     request(reqwest::Method::GET, url, token, None)
 }
 
+/// PUTs a JSON body to `url` with the bearer `token`, like [`post`].
+pub(crate) fn put_json(url: &Url, token: &str, body: &serde_json::Value) -> Result<(u16, String), String> {
+    request(reqwest::Method::PUT, url, token, Some(("application/json", body.to_string().into_bytes())))
+}
+
+/// DELETEs `url` with the bearer `token`, like [`post`].
+pub(crate) fn delete(url: &Url, token: &str) -> Result<(u16, String), String> {
+    request(reqwest::Method::DELETE, url, token, None)
+}
+
 fn request(method: reqwest::Method, url: &Url, token: &str, body: Option<(&str, Vec<u8>)>) -> Result<(u16, String), String> {
     let token = token.trim();
     if token.is_empty() {

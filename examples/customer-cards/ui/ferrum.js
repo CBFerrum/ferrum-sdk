@@ -17,7 +17,9 @@
 // On an origin of its own (`{app}--{workspace}.{apps base}`, when the server gives apps one) and
 // opened outside the workspace's page, there is no host: the page signs in with OAuth (code and
 // PKCE, the server's #ferrum-bootstrap says where) and calls the API itself with short-lived app
-// tokens, renewed while it is open. The same calls work either way.
+// tokens, renewed while it is open. An app the server trusts (installed from a store) is a page of
+// the workspace itself, under the bar: its calls go to the API with the person's session, and the
+// bar takes its title and its start. The same calls work all three ways.
 
 function readBootstrap() {
   try {
@@ -30,6 +32,10 @@ function readBootstrap() {
 const boot = readBootstrap();
 // Opened on its own origin, outside the workspace's page.
 const standalone = window.parent === window && !!boot?.oauth;
+// A page of the workspace itself (an app the server trusts): the session's and the bar's.
+const inPage = window.parent === window && !boot?.oauth && !!boot?.person;
+/** The bar's shell on a page of the workspace (`globalThis.ferrum.shell`, set by its runtime). */
+const bar = () => globalThis.ferrum?.shell;
 
 let port = null;
 let next = 1;
@@ -39,7 +45,7 @@ let started;
 const ready = new Promise((resolve) => (started = resolve));
 
 function call(method, params) {
-  if (standalone) return local(method, params ?? {});
+  if (standalone || inPage) return local(method, params ?? {});
   if (!port) return ready.then(() => call(method, params));
   return new Promise((resolve, reject) => {
     const id = next++;
@@ -182,11 +188,16 @@ async function local(method, p) {
         headers["content-type"] = "application/json";
         body = JSON.stringify(p.body);
       }
+      const url = `${p.path}${q.toString() ? `?${q}` : ""}`;
       const send = async () =>
-        fetch(`${p.path}${q.toString() ? `?${q}` : ""}`, { method: p.method ?? "GET", headers: { ...headers, authorization: `Bearer ${await bearer()}` }, body, credentials: "omit" });
+        inPage
+          ? fetch(url, { method: p.method ?? "GET", headers, body, credentials: "same-origin" })
+          : fetch(url, { method: p.method ?? "GET", headers: { ...headers, authorization: `Bearer ${await bearer()}` }, body, credentials: "omit" });
       let r = await send();
-      // Refused before it did anything: once more with a renewed token (or after signing in again).
-      if (r.status === 401) {
+      // Refused before it did anything: once more with a renewed token (or after signing in again);
+      // on a page of the workspace, the bar signs the person in again.
+      if (r.status === 401 && inPage) bar()?.session?.reauthenticate?.();
+      else if (r.status === 401) {
         expire();
         r = await send();
       }
@@ -210,15 +221,35 @@ async function local(method, p) {
       return null;
     case "title":
       document.title = p.text || document.title;
+      if (inPage) bar()?.title?.(p.text);
       return null;
     case "toast":
-      console.info(p.message);
+      if (inPage && bar()?.toast) bar().toast(p.message, { tone: p.tone === "error" ? "error" : "info" });
+      else console.info(p.message);
+      return null;
+    case "ready":
+      if (inPage) bar()?.ready?.();
       return null;
     case "confirm":
       return window.confirm(p.message ? `${p.title}\n\n${p.message}` : p.title);
     default:
       return null;
   }
+}
+
+if (inPage) {
+  started({
+    app: boot.app?.id,
+    slot: "page",
+    path: location.pathname + location.search,
+    user: { id: boot.person.id, name: boot.person.name, email: boot.person.email },
+    workspace: boot.workspace?.name ?? "",
+    locale: boot.locale?.language ?? navigator.language,
+    theme: null,
+  });
+  window.addEventListener("popstate", () => {
+    for (const fn of listeners.get("location") ?? []) fn({ path: location.pathname + location.search });
+  });
 }
 
 if (standalone) {
@@ -272,6 +303,7 @@ export const ferrum = {
   api: (method, path, { query, body, ifMatch } = {}) => call("api", { method, path, query, body, ifMatch }),
   /** Pages: the same, sent straight from the page with a short-lived app token (uploads, streams). */
   async fetch(path, init = {}) {
+    if (inPage) return fetch(path, { ...init, credentials: "same-origin" });
     const headers = new Headers(init.headers);
     headers.set("authorization", `Bearer ${await bearer()}`);
     const r = await fetch(path, { ...init, headers, credentials: "omit" });

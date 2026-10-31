@@ -1,0 +1,13 @@
+{
+  "name": "ferrum-app-{{id}}-ui",
+  "private": true,
+  "type": "module",
+  "description": "{{name}}'s own interface at /{{id}}/, built with Ferrum-Frontend's packages from the sibling checkout (../../ferrum/web)",
+  "scripts": {
+    "build": "node ../../ferrum/web/packages/build/cli.mjs build",
+    "check": "node ../../ferrum/web/packages/build/cli.mjs check",
+    "dev": "node ../../ferrum/web/packages/build/cli.mjs dev",
+    "typecheck": "node ../../ferrum/web/packages/build/cli.mjs typecheck",
+    "test": "node ../../ferrum/web/packages/build/cli.mjs test"
+  }
+}

@@ -75,6 +75,10 @@ enum Command {
         /// PascalCase prefix of the app's entities (wasm and meta apps) [default: from the id]
         #[arg(long)]
         prefix: Option<String>,
+        /// With an interface of its own at /<id>/: plain files run isolated (wasm and meta apps), or
+        /// Vite, React and TypeScript with Ferrum-Frontend's packages (native apps)
+        #[arg(long)]
+        ui: bool,
     },
     /// Validate an app directory as the server would: manifest, packages, plugin
     Check {
@@ -154,6 +158,15 @@ enum Command {
         /// to its install plan: its permissions and dependencies
         #[arg(long)]
         install: bool,
+        /// Serve the app's pages in the token's workspace from its interface's Vite server (run
+        /// `npm run dev` in ui/), behind the real session, bar and bootstrap, with hot reload; `off`
+        /// serves them from the app's release again. The server must run with FERRUM_DEV_UI=1.
+        #[arg(long, value_name = "URL|off")]
+        ui: Option<String>,
+        /// Upload nothing: only point the app's pages (`--ui`), for an app already installed or
+        /// compiled into the server
+        #[arg(long)]
+        no_upload: bool,
     },
 }
 
@@ -169,13 +182,13 @@ fn main() -> ExitCode {
 
 fn run(command: Command) -> Result<()> {
     match command {
-        Command::New { id, runtime, dir, name, publisher, prefix } => {
+        Command::New { id, runtime, dir, name, publisher, prefix, ui } => {
             let runtime = match runtime {
                 RuntimeArg::Wasm => Runtime::Wasm,
                 RuntimeArg::Meta => Runtime::Meta,
                 RuntimeArg::Native => Runtime::Native,
             };
-            let files = scaffold::generate(&scaffold::NewApp { id: id.clone(), runtime, name, publisher, prefix })?;
+            let files = scaffold::generate(&scaffold::NewApp { id: id.clone(), runtime, name, publisher, prefix, ui })?;
             let dir = dir.unwrap_or_else(|| PathBuf::from(&id));
             scaffold::create(&dir, &files)?;
             println!("created {} ({runtime} app {id})", dir.display());
@@ -244,7 +257,22 @@ fn run(command: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Dev { dir, server, token, watch, install } => dev(&dir, &server, &token, watch, install),
+        Command::Dev { dir, server, token, watch, install, ui, no_upload } => {
+            if no_upload && ui.is_none() {
+                return Err("--no-upload only makes sense with --ui".into());
+            }
+            if let Some(ui) = &ui {
+                // The pages first: an upload that waits for changes (--watch) never returns.
+                if !no_upload {
+                    dev(&dir, &server, &token, false, install)?;
+                }
+                dev_ui(&dir, &server, &token, ui)?;
+                if no_upload || !watch {
+                    return Ok(());
+                }
+            }
+            dev(&dir, &server, &token, watch, install)
+        }
     }
 }
 
@@ -282,12 +310,28 @@ fn walk(root: &Path, rel: &str, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata
     visit(rel, &path, &meta)
 }
 
-/// Visits every file of an app directory that belongs in its bundle.
+/// Visits every file of an app directory that belongs in its bundle. Of `ui/`: nothing for a native
+/// app (its crate embeds its interface), only the built directory of an interface built under it
+/// (`ui.dist: ui/dist`; its sources stay out), else all of it.
 fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Result<()>) -> Result<()> {
-    for rel in ROOT_FILES.iter().chain(&["packages", "assets", "ui"]) {
+    for rel in ROOT_FILES.iter().chain(&["packages", "assets"]) {
         walk(dir, rel, visit)?;
     }
-    Ok(())
+    match ui_dir(dir) {
+        Some(ui) => walk(dir, &ui, visit),
+        None => Ok(()),
+    }
+}
+
+/// The part of `ui/` a bundle takes (see [`walk_app`]); a manifest that does not parse gives all of
+/// `ui/`, and the bundle's check reports the manifest.
+fn ui_dir(dir: &Path) -> Option<String> {
+    let manifest = fs::read_to_string(dir.join("app.yaml")).ok().and_then(|yaml| ferrum_apps::AppManifest::parse(&yaml).ok());
+    let Some(m) = manifest else { return Some("ui".into()) };
+    if m.runtime == ferrum_apps::Runtime::Native {
+        return None;
+    }
+    Some(m.ui.map(|u| u.dist.trim_end_matches('/').to_string()).filter(|d| d.starts_with("ui/") && !d.contains("..")).unwrap_or_else(|| "ui".into()))
 }
 
 /// Whether a path of an app directory goes into its bundle (what `walk_app` visits).
@@ -524,6 +568,25 @@ fn dev(dir: &Path, server: &str, token: &str, watch: bool, install: bool) -> Res
         }
         std::thread::sleep(Duration::from_secs(1));
     }
+}
+
+/// Points the app's pages in the token's workspace at its Vite server (`url`), or back at its
+/// release (`off`).
+fn dev_ui(dir: &Path, server: &str, token: &str, url: &str) -> Result<()> {
+    let yaml = std::fs::read_to_string(dir.join("app.yaml")).map_err(|e| format!("{}: {e}", dir.join("app.yaml").display()))?;
+    let m = ferrum_apps::AppManifest::parse(&yaml).map_err(|e| e.to_string())?;
+    if m.ui.is_none() {
+        return Err(format!("{} has no interface of its own (no ui section in app.yaml)", m.id));
+    }
+    let endpoint = upload::endpoint(server, &format!("api/admin/apps/{}/dev-ui", m.id))?;
+    let (status, text) = if url == "off" { upload::delete(&endpoint, token)? } else { upload::put_json(&endpoint, token, &serde_json::json!({"url": url}))? };
+    match status {
+        200..=299 if url == "off" => println!("{}'s pages come from its release again", m.id),
+        200..=299 => println!("{}'s pages come from {url} (until --ui off or the server restarts)", m.id),
+        404 if text.contains("FERRUM_DEV_UI") => return Err("the server serves no development pages: start it with FERRUM_DEV_UI=1".into()),
+        _ => return Err(format!("the server would not point {}'s pages at {url} (HTTP {status}): {text}", m.id)),
+    }
+    Ok(())
 }
 
 /// Gives the app and each of its packages the pre-release version `<version>-dev.<n>` (or

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{name}}</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.js"></script>
+</head>
+<body>
+<main id="main">
+  <header class="head">
+    <h1>{{name}}</h1>
+    <p id="who" class="muted"></p>
+  </header>
+  <form id="add" class="add">
+    <input name="title" placeholder="A new note" aria-label="A new note" required maxlength="140" autocomplete="off">
+    <button type="submit">Add</button>
+  </form>
+  <p id="error" class="error" role="alert"></p>
+  <ul id="notes" class="notes" aria-live="polite"><li class="muted">Loading…</li></ul>
+</main>
+</body>
+</html>

@@ -71,6 +71,33 @@ uploaded copy only), so the server takes every change as a new release. With `--
 upload is also installed in the token's workspace (or updates it there), agreeing to its install
 plan, so the change is live at once; without it, update the app on the Apps page to try it.
 
+### An app with an interface of its own
+
+    ferrum-app new notes-board --runtime meta --ui --publisher acme
+    cd notes-board
+    ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch --install
+
+`--ui` adds `ui/`, the app's page at `/notes-board/` under the workspace's bar (`ui` and
+`shell.app` in `app.yaml`): plain HTML, a module script and a stylesheet, no build step, talking
+to Ferrum through the bridge `ui/ferrum.js`. The same files work everywhere the app may run: as a
+page of the workspace when the server trusts the app (from a store, or uploaded to the cluster),
+isolated in a sandboxed frame when it does not (an unsigned upload private to one workspace,
+which carries no tables of its own: such an app reads and writes the platform's entities its
+`access` names), or on an origin of its own. `examples/customer-cards` is a larger one.
+
+For a native app, `--ui` makes a Vite, React and TypeScript interface built with Ferrum-Frontend's
+packages from a checkout of Ferrum next to the app (`../../ferrum/web`; they are not on npm yet),
+as Ferrum's own apps are. Its loop is hot reload against a real server: in `ui/`, `npm run dev`
+starts Vite; on a Ferrum server run with `FERRUM_DEV_UI=1`,
+
+    ferrum-app dev --ui http://localhost:5173 --no-upload
+
+serves the app's pages from it, behind the real session, bar and bootstrap, until
+`--ui off` or the server restarts (an isolated interface stays isolated, framed from the dev
+server). `npm run build` writes `ui/dist`, which the app's crate embeds; `npm run check` (CI)
+fails unless `ui/dist` matches its sources and keeps the size budgets (entry JavaScript at most
+200 KB compressed, CSS 50 KB).
+
 ### A wasm app (sandboxed code)
 
     ferrum-app new ev-charging --runtime wasm --publisher voltworks
@@ -275,6 +302,8 @@ upgrade that adds any line stops for a new consent. The plugin's `fuel_limit` is
   is extended only with grants on the app's own entities (native apps may extend it freely,
   as the platform's own packages do).
 * `ferrum-app dev --watch --install` keeps a local workspace up to date while you work.
+* `ferrum-app dev --ui http://localhost:5173 --no-upload` serves an installed app's pages from its
+  interface's Vite server, with hot reload (a server run with `FERRUM_DEV_UI=1`; `--ui off` undoes it).
 * Unit-test plugin logic as ordinary Rust (the `handle` function takes a `Request` and returns
   JSON); `ferrum_plugins::PluginHost::execute` in the Ferrum repository runs a compiled module
   without a server.
@@ -307,7 +336,7 @@ upgrade that adds any line stops for a new consent. The plugin's `fuel_limit` is
 
 | Command | |
 |---|---|
-| `new <id> --runtime wasm\|meta\|native [--dir D] [--name N] [--publisher P] [--prefix X]` | scaffold an app |
+| `new <id> --runtime wasm\|meta\|native [--dir D] [--name N] [--publisher P] [--prefix X] [--ui]` | scaffold an app (`--ui`: with an interface of its own) |
 | `check [dir] [--platform-packages DIR]` | validate an app directory |
 | `pack [dir] [-o file.fapp] [--platform-packages DIR]` | check and build the bundle |
 | `keygen -o key.pk8 [--role publisher\|store]` | create a signing key |
@@ -315,7 +344,7 @@ upgrade that adds any line stops for a new consent. The plugin's `fuel_limit` is
 | `verify file.fapp --trust ROLE:KEY...` | verify signatures |
 | `inspect file.fapp [--json]` | manifest, digest, signatures, permissions |
 | `publish file.fapp --store URL --token T` | submit to a store |
-| `dev [dir] --server URL --token T [--watch]` | upload to a server as a private app (multipart field `bundle` to `{server}/api/admin/apps/upload`) |
+| `dev [dir] --server URL --token T [--watch] [--install] [--ui URL\|off] [--no-upload]` | upload to a server as a private app (multipart field `bundle` to `{server}/api/admin/apps/upload`); `--ui` serves its pages from a Vite server (`PUT`/`DELETE {server}/api/admin/apps/{id}/dev-ui`) |
 
 ## Editor support
 

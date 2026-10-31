@@ -18,6 +18,27 @@ const PLUGIN_JSON: &str = include_str!("../../templates/wasm/plugin.json");
 const PLUGIN_CARGO: &str = include_str!("../../templates/wasm/Cargo.toml");
 const PLUGIN_LIB: &str = include_str!("../../templates/wasm/lib.rs");
 const PLUGIN_SECTION: &str = include_str!("../../templates/wasm/build.md");
+/// An interface of its own that runs isolated (third-party apps): plain files and the bridge.
+const UI_ISOLATED: [(&str, &str); 3] = [
+    ("ui/index.html", include_str!("../../templates/ui/isolated/index.html")),
+    ("ui/app.js", include_str!("../../templates/ui/isolated/app.js")),
+    ("ui/style.css", include_str!("../../templates/ui/isolated/style.css")),
+];
+/// The bridge an isolated interface reaches Ferrum through, as the example ships it.
+const UI_BRIDGE: &str = include_str!("../../examples/customer-cards/ui/ferrum.js");
+/// An interface of its own built with Ferrum-Frontend's packages (native apps: Vite, React, TypeScript).
+const UI_NATIVE: [(&str, &str); 10] = [
+    ("ui/package.json", include_str!("../../templates/ui/native/package.json")),
+    ("ui/vite.config.mjs", include_str!("../../templates/ui/native/vite.config.mjs")),
+    ("ui/tsconfig.json", include_str!("../../templates/ui/native/tsconfig.json")),
+    ("ui/index.html", include_str!("../../templates/ui/native/index.html")),
+    ("ui/src/main.tsx", include_str!("../../templates/ui/native/src/main.tsx")),
+    ("ui/src/records.ts", include_str!("../../templates/ui/native/src/records.ts")),
+    ("ui/src/Notes.tsx", include_str!("../../templates/ui/native/src/Notes.tsx")),
+    ("ui/src/greeting.ts", include_str!("../../templates/ui/native/src/greeting.ts")),
+    ("ui/src/greeting.test.ts", include_str!("../../templates/ui/native/src/greeting.test.ts")),
+    ("ui/src/styles.css", include_str!("../../templates/ui/native/src/styles.css")),
+];
 
 /// What `new` was asked for.
 pub(crate) struct NewApp {
@@ -26,6 +47,8 @@ pub(crate) struct NewApp {
     pub name: Option<String>,
     pub publisher: String,
     pub prefix: Option<String>,
+    /// With an interface of its own at `/{id}/` (docs/plan/apps-ui.md §10.6).
+    pub ui: bool,
 }
 
 /// Replaces `{{key}}` placeholders; a line holding only a placeholder that expands to nothing is
@@ -128,6 +151,30 @@ pub(crate) fn generate(app: &NewApp) -> Result<BTreeMap<String, String>, String>
         Runtime::Meta => String::new(),
     };
     let plugin_summary = if wasm { "- A plugin that tidies note titles before they are saved" } else { "" };
+    let native = app.runtime == Runtime::Native;
+    let ui_block = if !app.ui {
+        String::new()
+    } else {
+        let (comment, dist) = if native {
+            ("# Its own interface at /{id}/: ui/ (Vite, React, TypeScript), built into ui/dist.", "ui/dist")
+        } else {
+            ("# Its own interface at /{id}/: ui/, which runs isolated and reaches Ferrum through ui/ferrum.js.", "ui")
+        };
+        // An entry's id takes letters, digits and '_'; its route, the app's id.
+        format!(
+            "{}\nui:\n  dist: {dist}\ncontributes:\n  shell.app:\n    - {{id: {module}, route: {id}, title: \"{name}\", description: \"Notes with a status for your team\", icon: layout-grid}}",
+            comment.replace("{id}", id)
+        )
+    };
+    let ui_section = match (app.ui, native) {
+        (false, _) => String::new(),
+        (true, false) => format!(
+            "### Its interface\n\n`ui/` is the app's own page at `/{id}/`: plain HTML, a module script and a stylesheet, no build step. It runs\nisolated, in a sandboxed frame under the workspace's bar: no session, no storage of the workspace's site,\nand everything through the bridge, `ui/ferrum.js` (its calls reach this app's entities and what `access`\nin `app.yaml` declares, within the person's rights). `ferrum-app dev --watch --install` uploads each\nchange, so the page you reload is the one you just saved.\n"
+        ),
+        (true, true) => format!(
+            "### Its interface\n\n`ui/` is the app's own interface at `/{id}/`, built with Ferrum-Frontend's packages from a checkout of\nFerrum next to this app (`../../ferrum/web`; the packages are not on npm yet). In `ui/`: `npm run dev`\nstarts Vite, and on a Ferrum server run with `FERRUM_DEV_UI=1`, `ferrum-app dev --ui http://localhost:5173\n--no-upload` serves the app's pages from it, behind the real session, bar and bootstrap, with hot reload.\n`npm run build` writes `ui/dist`: commit it, as the crate embeds it at compile time and the server\nregisters it at start (Ferrum's ferrum-app-pos shows how); `npm run check` (CI) fails unless\n`ui/dist` matches its sources and keeps the size budgets, `npm test` runs the tests.\n"
+        ),
+    };
     let vars = [
         ("id", id),
         ("name", name.as_str()),
@@ -144,6 +191,8 @@ pub(crate) fn generate(app: &NewApp) -> Result<BTreeMap<String, String>, String>
         ("plugin_line", plugin_line),
         ("plugin_summary", plugin_summary),
         ("build_section", build_section.as_str()),
+        ("ui_block", ui_block.as_str()),
+        ("ui_section", ui_section.as_str()),
     ];
     let mut files = BTreeMap::new();
     let mut add = |path: String, template: &str| files.insert(path, render(template, &vars));
@@ -159,13 +208,29 @@ pub(crate) fn generate(app: &NewApp) -> Result<BTreeMap<String, String>, String>
         add("plugin/Cargo.toml".into(), PLUGIN_CARGO);
         add("plugin/src/lib.rs".into(), PLUGIN_LIB);
     }
-    check(&files, wasm)?;
+    if app.ui {
+        for (path, template) in if native { &UI_NATIVE[..] } else { &UI_ISOLATED[..] } {
+            add((*path).into(), template);
+        }
+    }
+    if app.ui && !native {
+        files.insert("ui/ferrum.js".into(), UI_BRIDGE.to_string());
+    }
+    if app.ui && native {
+        // The interface builds with Ferrum-Frontend's libraries (a link the developer makes).
+        if let Some(ignore) = files.get_mut(".gitignore") {
+            ignore.push_str("/ui/node_modules\n");
+        }
+    }
+    check(&files, wasm, native)?;
     Ok(files)
 }
 
 /// The generated app must be valid as generated (a wasm app once its module is built).
-fn check(files: &BTreeMap<String, String>, wasm: bool) -> Result<(), String> {
-    let mut bundle: BTreeMap<String, Vec<u8>> = files.iter().filter(|(p, _)| in_bundle(p)).map(|(p, t)| (p.clone(), t.clone().into_bytes())).collect();
+fn check(files: &BTreeMap<String, String>, wasm: bool, native: bool) -> Result<(), String> {
+    // A native app's interface is its crate's, not its bundle's (`walk_app`).
+    let bundled = |p: &str| in_bundle(p) && !(native && p.starts_with("ui/"));
+    let mut bundle: BTreeMap<String, Vec<u8>> = files.iter().filter(|(p, _)| bundled(p)).map(|(p, t)| (p.clone(), t.clone().into_bytes())).collect();
     if wasm {
         // Stands in for the module the developer builds from plugin/.
         bundle.insert("plugin.wasm".into(), b"\0asm\x01\0\0\0".to_vec());
@@ -193,7 +258,34 @@ mod tests {
     use super::*;
 
     fn app(id: &str, runtime: Runtime) -> NewApp {
-        NewApp { id: id.into(), runtime, name: None, publisher: "acme".into(), prefix: None }
+        NewApp { id: id.into(), runtime, name: None, publisher: "acme".into(), prefix: None, ui: false }
+    }
+
+    #[test]
+    fn every_runtime_scaffolds_an_interface_of_its_own() {
+        for runtime in [Runtime::Meta, Runtime::Wasm, Runtime::Native] {
+            let files = generate(&NewApp { ui: true, ..app("ev-charging", runtime) }).unwrap_or_else(|e| panic!("{runtime}: {e}"));
+            for (path, text) in files.iter().filter(|(p, _)| *p != "ui/ferrum.js") {
+                assert!(!text.contains("{{"), "{runtime} {path} keeps a placeholder");
+            }
+            let yaml = &files["app.yaml"];
+            let manifest = ferrum_apps::AppManifest::parse(yaml).unwrap_or_else(|e| panic!("{runtime}: {e}\n{yaml}"));
+            let dist = &manifest.ui.as_ref().expect("a ui section").dist;
+            assert_eq!(dist, if runtime == Runtime::Native { "ui/dist" } else { "ui" });
+            assert!(yaml.contains("route: ev-charging"), "{yaml}");
+            if runtime == Runtime::Native {
+                assert!(files.contains_key("ui/src/main.tsx") && files.contains_key("ui/package.json"));
+                assert!(files["ui/src/Notes.tsx"].contains("const ENTITY = \"EvChargingNote\""));
+                assert!(files[".gitignore"].contains("/ui/node_modules"));
+                assert!(files["ui/package.json"].contains("cli.mjs dev"));
+            } else {
+                assert!(files.contains_key("ui/ferrum.js") && files.contains_key("ui/app.js"));
+                assert!(files["ui/app.js"].contains("const ENTITY = \"EvNote\""));
+            }
+            assert!(files["README.md"].contains("### Its interface"));
+        }
+        let plain = generate(&app("ev-charging", Runtime::Meta)).unwrap();
+        assert!(!plain["app.yaml"].contains("ui:") && !plain.keys().any(|p| p.starts_with("ui/")), "no interface unless asked");
     }
 
     #[test]

@@ -20,3 +20,4 @@ packages: [{{package}}]
 {{prefix_line}}
 # keep | ask: whether removing the app offers to delete its data.
 uninstall: keep
+{{ui_block}}
