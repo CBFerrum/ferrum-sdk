@@ -221,7 +221,7 @@ ships in the server image.
 | `version` | yes | semver, no build metadata (`1.4.0`, `2.0.0-beta.1`) |
 | `publisher` | yes | your store publisher id (same syntax as `id`) |
 | `summary` | yes | one line, at most 200 characters |
-| `description` | | a markdown file in the bundle, usually `README.md` |
+| `description` | | a markdown file in the bundle, usually `README.md`. The store's page renders it without raw HTML, pictures or diagrams (put pictures in `screenshots`); the install dialog shows its opening prose |
 | `categories` | yes | 1 to 3 of: sales, crm, support, hr, finance, inventory, manufacturing, projects, commerce, pos, communication, productivity, marketing, analytics, integrations, localization, energy, iot, education, healthcare, industry, developer |
 | `icon` | | an image under `assets/` (png, jpg, jpeg, gif, webp, svg) |
 | `screenshots` | | up to 10 images under `assets/` |
