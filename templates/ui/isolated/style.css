@@ -1,0 +1,98 @@
+/* {{name}}'s page. It runs isolated, without the workspace's theme: its own colours, light and dark. */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f6f7f9, #14161a);
+  --surface: light-dark(#ffffff, #1d2026);
+  --text: light-dark(#14161a, #eceef2);
+  --muted: light-dark(#5b6472, #a0a9b8);
+  --border: light-dark(#d9dee5, #2c333f);
+  --accent: light-dark(#2f5bea, #6d8ff5);
+  --danger: light-dark(#c62828, #ff8a80);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+.muted {
+  color: var(--muted);
+}
+.head p {
+  margin: 4px 0 16px;
+}
+.add {
+  display: flex;
+  gap: 8px;
+}
+.add input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+button {
+  font: inherit;
+}
+.add button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.error {
+  min-height: 1.5em;
+  margin: 8px 0;
+  color: var(--danger);
+}
+.notes {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  list-style: none;
+}
+.notes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.notes li + li {
+  border-top: 1px solid var(--border);
+}
+.notes .title {
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.notes .title:hover {
+  color: var(--accent);
+}

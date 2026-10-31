@@ -18,6 +18,7 @@ This is a Ferrum app ({{runtime}} runtime). It needs the `ferrum-app` CLI from
     ferrum-app dev --server http://127.0.0.1:5150 --token "$FERRUM_TOKEN" --watch --install
 
 {{build_section}}
+{{ui_section}}
 ## Release
 
     ferrum-app keygen -o publisher.pk8          # once; register the printed key with the store
