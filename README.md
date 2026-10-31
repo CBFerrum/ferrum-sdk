@@ -270,6 +270,7 @@ packages/<name>/sql/*.sql
 packages/<name>/print/<Entity>.html
 assets/**/*.{png,jpg,jpeg,gif,webp,svg}
 ui/**                        wasm and meta apps: screens
+ui/dist/**                   native apps: the built interface `ui.dist` names (never its sources)
 SIGNATURES.json              added by ferrum-app sign
 ```
 
