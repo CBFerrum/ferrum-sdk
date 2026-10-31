@@ -95,6 +95,32 @@ fn meta_app_end_to_end() {
     assert!(err.contains("role 'Notes Kit User' already exists (platform package core)") && err.contains("not Company"), "{err}");
     fs::write(&package_yaml, &package).unwrap();
 
+    // Several directories make one platform: ERP's packages live in ERP's repository, beside the
+    // shared ones in Ferrum's. An app that extends ERP's documents names both.
+    let sales = t.join("erp/sales");
+    fs::create_dir_all(sales.join("entities")).unwrap();
+    fs::write(sales.join("package.yaml"), "package: sales\nversion: 0.2.0\ndepends: [core]\n").unwrap();
+    fs::write(
+        sales.join("entities/sales_invoice.yaml"),
+        "name: SalesInvoice\nlabel: Sales Invoice\nkind: master\nfields:\n  - {name: company, type: link, to: Company}\n",
+    )
+    .unwrap();
+    let overlay = "overlays:\n  - entity: SalesInvoice\n    ops:\n      - {op: add_field, field: {name: notes_kit_ref, type: data}}\n";
+    fs::write(
+        &package_yaml,
+        format!("{}{overlay}", package.replacen("version: 0.1.0\n", "version: 0.1.0\ndepends: [core, sales]\nfield_prefix: notes_kit_\n", 1)),
+    )
+    .unwrap();
+    assert!(fs::read_to_string(&package_yaml).unwrap().contains("depends: [core, sales]"), "the package names its dependencies");
+    let err = fails(&["check", "notes-kit", "--platform-packages", "platform"], t);
+    assert!(err.contains("sales") || err.contains("SalesInvoice"), "{err}");
+    ok(&["check", "notes-kit", "--platform-packages", "platform", "--platform-packages", "erp"], t);
+    // The same package in two of them is refused, as the server's catalog would.
+    let err = fails(&["check", "notes-kit", "--platform-packages", "platform", "--platform-packages", "platform"], t);
+    assert!(err.contains("duplicate package 'core'"), "{err}");
+    assert!(fails(&["check", "notes-kit", "--platform-packages", "erp/sales"], t).contains("no package here"));
+    fs::write(&package_yaml, &package).unwrap();
+
     // Errors the server would also refuse are reported before packing.
     let app_yaml = t.join("notes-kit/app.yaml");
     let original = fs::read_to_string(&app_yaml).unwrap();

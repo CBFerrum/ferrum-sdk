@@ -387,7 +387,7 @@ seed data and print formats on other packages' entities, roles, SQL).
 | | |
 |---|---|
 | ✅ `ferrum-app check [dir]` | validates the manifest, the layout, every package, `plugin.json` (as the server parses it) and `plugin.wasm` (with the server's plugin validator) |
-| 🔗 `ferrum-app check --platform-packages ../ferrum/packages` | also validates the app's packages together with the platform's, as the server's catalog does: links resolve, overlays apply, `plugin.json` names only existing entities, and a role that already exists on the platform is extended only with grants on the app's own entities (native apps may extend it freely) |
+| 🔗 `ferrum-app check --platform-packages ../ferrum/packages` | also validates the app's packages together with the platform's, as the server's catalog does (give the flag once per directory: an app that builds on ERP's documents adds `../ferrum-app-erp/packages` and `../ferrum-app-erp/addons/india/packages`): links resolve, overlays apply, `plugin.json` names only existing entities, and a role that already exists on the platform is extended only with grants on the app's own entities (native apps may extend it freely) |
 | 🔁 `ferrum-app dev --watch --install` | keeps a local workspace up to date while you work |
 | ⚡ `ferrum-app dev --ui http://localhost:5173 --no-upload` | serves an installed app's pages from its interface's Vite server, with hot reload (a server run with `FERRUM_DEV_UI=1`; `--ui off` undoes it) |
 | 🧪 Rust unit tests | plugin logic is ordinary Rust (`handle` takes a `Request` and returns JSON); `ferrum_plugins::PluginHost::execute` in the Ferrum repository runs a compiled module without a server |
@@ -438,8 +438,8 @@ sequenceDiagram
 | Command | |
 |---|---|
 | `new <id> --runtime wasm\|meta\|native [--dir D] [--name N] [--publisher P] [--prefix X] [--ui]` | scaffold an app (`--ui`: with an interface of its own) |
-| `check [dir] [--platform-packages DIR]` | validate an app directory |
-| `pack [dir] [-o file.fapp] [--platform-packages DIR]` | check and build the bundle |
+| `check [dir] [--platform-packages DIR]...` | validate an app directory |
+| `pack [dir] [-o file.fapp] [--platform-packages DIR]...` | check and build the bundle |
 | `keygen -o key.pk8 [--role publisher\|store]` | create a signing key |
 | `sign file.fapp --key key.pk8 [--role publisher\|store]` | sign a bundle in place |
 | `verify file.fapp --trust ROLE:KEY...` | verify signatures |
