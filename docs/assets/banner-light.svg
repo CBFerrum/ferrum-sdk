@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-label="Ferrum SDK: Scaffold, check, sign and publish apps for Ferrum, and write WebAssembly plugins in Rust.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eae9fc"/></linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#645ce8"/><stop offset="1" stop-color="#4940d3"/></linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="#4f46e5" fill-opacity="0.12"/></pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#4f46e5" flood-opacity="0.35"/></filter>
+    <clipPath id="card"><rect width="1280" height="360" rx="28"/></clipPath>
+    <style>
+      text { font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+      .sheen { animation: sweep 9s ease-in-out infinite; }
+      .tile { animation: float 7s ease-in-out infinite; }
+      @keyframes sweep { 0% { transform: translateX(-480px) skewX(-18deg); } 60%, 100% { transform: translateX(1760px) skewX(-18deg); } }
+      @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+      @media (prefers-reduced-motion: reduce) { .sheen, .tile { animation: none; } }
+    </style>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="1280" height="360" fill="url(#bg)"/>
+    <rect width="1280" height="360" fill="url(#dots)"/>
+    <circle cx="1150" cy="20" r="230" fill="#4f46e5" fill-opacity="0.07"/>
+    <circle cx="1240" cy="350" r="150" fill="#4f46e5" fill-opacity="0.06"/>
+    <rect class="sheen" x="0" y="-60" width="260" height="480" fill="url(#sheen)"/>
+  </g>
+  <rect x="0.5" y="0.5" width="1279" height="359" rx="28" fill="none" stroke="#d8d6f9"/>
+  <g class="tile"><g transform="translate(72 102)" filter="url(#shadow)"><rect width="144" height="144" rx="36" fill="url(#tile)"/><g transform="translate(36 36) scale(3)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></g></g></g>
+  <text x="264" y="138" font-size="17" font-weight="700" fill="#4f46e5" letter-spacing="2.4">DEVELOPER KIT</text>
+  <text x="262" y="198" font-size="58" font-weight="750" fill="#0f172a" letter-spacing="-1">Ferrum SDK</text>
+  <text x="264" y="244" font-size="23" fill="#475569">Scaffold, check, sign and publish apps for Ferrum,</text>
+  <text x="264" y="278" font-size="23" fill="#475569">and write WebAssembly plugins in Rust.</text>
+  <g><rect x="264" y="310" width="138" height="30" rx="15" fill="#e6e5fb"/><text x="333.2" y="330" font-size="14.5" font-weight="600" fill="#3b35ac" text-anchor="middle">ferrum-app CLI</text></g>
+  <g><rect x="412.4" y="310" width="70" height="30" rx="15" fill="#e6e5fb"/><text x="447.2" y="330" font-size="14.5" font-weight="600" fill="#3b35ac" text-anchor="middle">wasm32</text></g>
+  <g><rect x="492" y="310" width="104" height="30" rx="15" fill="#e6e5fb"/><text x="544.0" y="330" font-size="14.5" font-weight="600" fill="#3b35ac" text-anchor="middle">Apache-2.0</text></g>
+</svg>
