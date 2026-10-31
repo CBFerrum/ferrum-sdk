@@ -228,7 +228,8 @@ pub(crate) fn generate(app: &NewApp) -> Result<BTreeMap<String, String>, String>
 
 /// The generated app must be valid as generated (a wasm app once its module is built).
 fn check(files: &BTreeMap<String, String>, wasm: bool, native: bool) -> Result<(), String> {
-    // A native app's interface is its crate's, not its bundle's (`walk_app`).
+    // A native app's bundle takes only its built interface (`ui.dist`, `walk_app`), which a new app
+    // has yet to build.
     let bundled = |p: &str| in_bundle(p) && !(native && p.starts_with("ui/"));
     let mut bundle: BTreeMap<String, Vec<u8>> = files.iter().filter(|(p, _)| bundled(p)).map(|(p, t)| (p.clone(), t.clone().into_bytes())).collect();
     if wasm {

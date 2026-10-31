@@ -324,14 +324,17 @@ fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Res
 }
 
 /// The part of `ui/` a bundle takes (see [`walk_app`]); a manifest that does not parse gives all of
-/// `ui/`, and the bundle's check reports the manifest.
+/// `ui/`, and the bundle's check reports the manifest. A native app's `ui/` holds the sources of its
+/// interface (Vite, TypeScript): its bundle takes only the built files `ui.dist` names, which the
+/// store reviews (its server embeds its own copy), and nothing when it declares none.
 fn ui_dir(dir: &Path) -> Option<String> {
     let manifest = fs::read_to_string(dir.join("app.yaml")).ok().and_then(|yaml| ferrum_apps::AppManifest::parse(&yaml).ok());
     let Some(m) = manifest else { return Some("ui".into()) };
+    let dist = m.ui.map(|u| u.dist.trim_end_matches('/').to_string()).filter(|d| d.starts_with("ui/") && !d.contains(".."));
     if m.runtime == ferrum_apps::Runtime::Native {
-        return None;
+        return dist;
     }
-    Some(m.ui.map(|u| u.dist.trim_end_matches('/').to_string()).filter(|d| d.starts_with("ui/") && !d.contains("..")).unwrap_or_else(|| "ui".into()))
+    Some(dist.unwrap_or_else(|| "ui".into()))
 }
 
 /// Whether a path of an app directory goes into its bundle (what `walk_app` visits).
@@ -668,8 +671,43 @@ fn dev_upload(dir: &Path, url: &reqwest::Url, token: &str) -> Result<(String, St
 
 #[cfg(test)]
 mod tests {
-    use super::dev_versions;
+    use super::{collect, dev_versions};
     use std::collections::BTreeMap;
+    use std::fs;
+
+    /// A native app's interface sources stay out of its bundle; its built files go in, so the store
+    /// can review them.
+    #[test]
+    fn a_native_bundle_takes_the_built_interface_only() {
+        let dir = std::env::temp_dir().join(format!("ferrum-app-native-ui-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let write = |rel: &str, text: &str| {
+            let path = dir.join(rel);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        };
+        write(
+            "app.yaml",
+            "id: till\nname: Till\nversion: 0.1.0\npublisher: acme\nsummary: A till\ncategories: [pos]\nruntime: native\nplatform: \">=0.3, <0.4\"\n\
+             packages: []\nui:\n  dist: ui/dist\ncontributes:\n  shell.app:\n    - {id: till, route: till, title: Till}\n",
+        );
+        write("ui/package.json", "{}");
+        write("ui/src/main.tsx", "export {};");
+        write("ui/dist/index.html", "<!doctype html><html lang=\"en\"><head><title>Till</title></head><body></body></html>");
+        write("ui/dist/assets/index-a1b2.js", "export {};");
+        let files = collect(&dir).expect("a bundle");
+        let ui: Vec<&String> = files.keys().filter(|p| p.starts_with("ui/")).collect();
+        assert_eq!(ui, ["ui/dist/assets/index-a1b2.js", "ui/dist/index.html"]);
+        // Without an interface it declares, nothing of ui/ goes in.
+        write(
+            "app.yaml",
+            &fs::read_to_string(dir.join("app.yaml"))
+                .unwrap()
+                .replace("ui:\n  dist: ui/dist\ncontributes:\n  shell.app:\n    - {id: till, route: till, title: Till}\n", ""),
+        );
+        assert!(!collect(&dir).expect("a bundle").keys().any(|p| p.starts_with("ui/")));
+        fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn dev_uploads_get_their_own_versions() {
