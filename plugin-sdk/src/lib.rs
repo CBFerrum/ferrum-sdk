@@ -217,7 +217,9 @@ pub fn fetch(method: &str, url: &str, headers: Value, body: Value) -> Result<Val
 }
 
 /// As `fetch`, signed in by the host with the credential `name` from the manifest's `credentials`.
-/// The plugin never holds its value, and the host sends it only to the hosts declared for it.
+/// The plugin never holds its value, and the host sends it only to the hosts declared for it. With
+/// `scheme: oauth2` the host also buys the short-lived token and keeps it, so there is nothing to
+/// refresh here: a 401 means the next call signs in afresh.
 pub fn fetch_with(name: &str, method: &str, url: &str, headers: Value, body: Value) -> Result<Value, HostError> {
     call("http.fetch", json!({"method": method, "url": url, "headers": headers, "body": body, "auth": name}))
 }
