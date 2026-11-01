@@ -139,7 +139,7 @@ which carries no tables of its own: such an app reads and writes the platform's 
 For a native app, `--ui` makes a Vite, React and TypeScript interface built with Ferrum-Frontend's
 packages from a checkout of Ferrum next to the app (`../../ferrum/web`; they are not on npm yet),
 as Ferrum's own apps are. Its loop is hot reload against a real server: in `ui/`, `npm run dev`
-starts Vite; on a Ferrum server run with `FERRUM_DEV_UI=1`,
+starts Vite; on a Ferrum server run with `FERRUM_DEV_UI=true`,
 
 ```bash
 ferrum-app dev --ui http://localhost:5173 --no-upload
@@ -389,7 +389,7 @@ seed data and print formats on other packages' entities, roles, SQL).
 | ✅ `ferrum-app check [dir]` | validates the manifest, the layout, every package, `plugin.json` (as the server parses it) and `plugin.wasm` (with the server's plugin validator) |
 | 🔗 `ferrum-app check --platform-packages ../ferrum/packages` | also validates the app's packages together with the platform's, as the server's catalog does (give the flag once per directory: an app that builds on ERP's documents adds `../ferrum-app-erp/packages` and `../ferrum-app-erp/addons/india/packages`): links resolve, overlays apply, `plugin.json` names only existing entities, and a role that already exists on the platform is extended only with grants on the app's own entities (native apps may extend it freely) |
 | 🔁 `ferrum-app dev --watch --install` | keeps a local workspace up to date while you work |
-| ⚡ `ferrum-app dev --ui http://localhost:5173 --no-upload` | serves an installed app's pages from its interface's Vite server, with hot reload (a server run with `FERRUM_DEV_UI=1`; `--ui off` undoes it) |
+| ⚡ `ferrum-app dev --ui http://localhost:5173 --no-upload` | serves an installed app's pages from its interface's Vite server, with hot reload (a server run with `FERRUM_DEV_UI=true`; `--ui off` undoes it) |
 | 🧪 Rust unit tests | plugin logic is ordinary Rust (`handle` takes a `Request` and returns JSON); `ferrum_plugins::PluginHost::execute` in the Ferrum repository runs a compiled module without a server |
 | 🤖 `ferrum-app inspect --json` | the manifest, digest, signatures, permissions and files, for scripts and CI |
 

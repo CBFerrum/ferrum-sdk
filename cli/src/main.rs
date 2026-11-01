@@ -164,7 +164,7 @@ enum Command {
         install: bool,
         /// Serve the app's pages in the token's workspace from its interface's Vite server (run
         /// `npm run dev` in ui/), behind the real session, bar and bootstrap, with hot reload; `off`
-        /// serves them from the app's release again. The server must run with FERRUM_DEV_UI=1.
+        /// serves them from the app's release again. The server must run with FERRUM_DEV_UI=true.
         #[arg(long, value_name = "URL|off")]
         ui: Option<String>,
         /// Upload nothing: only point the app's pages (`--ui`), for an app already installed or
@@ -642,7 +642,7 @@ fn dev_ui(dir: &Path, server: &str, token: &str, url: &str) -> Result<()> {
     match status {
         200..=299 if url == "off" => println!("{}'s pages come from its release again", m.id),
         200..=299 => println!("{}'s pages come from {url} (until --ui off or the server restarts)", m.id),
-        404 if text.contains("FERRUM_DEV_UI") => return Err("the server serves no development pages: start it with FERRUM_DEV_UI=1".into()),
+        404 if text.contains("FERRUM_DEV_UI") => return Err("the server serves no development pages: start it with FERRUM_DEV_UI=true".into()),
         _ => return Err(format!("the server would not point {}'s pages at {url} (HTTP {status}): {text}", m.id)),
     }
     Ok(())
