@@ -15,7 +15,7 @@ const PACKAGE: &str = include_str!("../../templates/package/package.yaml");
 const ENTITY: &str = include_str!("../../templates/package/entity.yaml");
 const NATIVE_SECTION: &str = include_str!("../../templates/native.md");
 const PLUGIN_JSON: &str = include_str!("../../templates/wasm/plugin.json");
-const PLUGIN_CARGO: &str = include_str!("../../templates/wasm/Cargo.toml");
+const PLUGIN_CARGO: &str = include_str!("../../templates/wasm/Cargo.toml.tmpl");
 const PLUGIN_LIB: &str = include_str!("../../templates/wasm/lib.rs");
 const PLUGIN_SECTION: &str = include_str!("../../templates/wasm/build.md");
 /// An interface of its own that runs isolated (third-party apps): plain files and the bridge.
