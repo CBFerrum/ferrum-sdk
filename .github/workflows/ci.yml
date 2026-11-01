@@ -35,3 +35,10 @@ jobs:
       - name: Test
         working-directory: ferrum-sdk
         run: cargo test -p ferrum-app
+      # A placeholder in a template's Cargo.toml once made this repository unusable as a git
+      # dependency, so nothing scaffolded could build; the tests above could not see that.
+      - name: A scaffolded plugin builds against this repository
+        working-directory: ferrum-sdk
+        run: |
+          cargo run -q -p ferrum-app -- new ci-plugin --runtime wasm --publisher acme --name "CI Plugin"
+          cargo build --manifest-path ci-plugin/plugin/Cargo.toml --target wasm32-unknown-unknown --config "patch.\"https://github.com/CBFerrum/ferrum-sdk\".ferrum-plugin-sdk.path=\"$PWD/plugin-sdk\""
