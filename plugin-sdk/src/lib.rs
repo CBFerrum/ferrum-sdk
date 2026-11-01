@@ -206,6 +206,11 @@ pub mod kv {
     pub fn delete(key: &str) -> Result<(), HostError> {
         call("kv.delete", json!({"key": key})).map(drop)
     }
+    /// Removes `key` only while it still holds `value`, and says whether it did. A connection
+    /// closing late then cannot remove the mapping of the one that replaced it.
+    pub fn delete_if(key: &str, value: Value) -> Result<bool, HostError> {
+        Ok(call("kv.delete", json!({"key": key, "if_value": value}))?["deleted"].as_bool().unwrap_or(false))
+    }
     pub fn list(prefix: &str) -> Result<Vec<Value>, HostError> {
         Ok(call("kv.list", json!({"prefix": prefix}))?.as_array().cloned().unwrap_or_default())
     }
@@ -234,9 +239,17 @@ pub fn emit(topic: &str, payload: Value) -> Result<(), HostError> {
     call("events.emit", json!({"topic": topic, "payload": payload})).map(drop)
 }
 
-/// Writes to one of the plugin's WebSocket connections, on whichever replica holds it.
+/// Writes to one of the plugin's WebSocket connections, on whichever replica holds it. A socket too
+/// slow to keep up is closed and this fails. Sockets are best effort either way: never the only path
+/// for something that must arrive.
 pub fn send(connection: &str, message: &str) -> Result<(), HostError> {
     call("sockets.send", json!({"connection": connection, "message": message})).map(drop)
+}
+
+/// As [`send`], for a frame that can be missed, such as one reading of many: when the socket's queue
+/// is full this one is dropped and the socket stays open. Says whether it was taken.
+pub fn send_or_drop(connection: &str, message: &str) -> Result<bool, HostError> {
+    Ok(call("sockets.send", json!({"connection": connection, "message": message, "overflow": "drop"}))?["sent"].as_bool().unwrap_or(false))
 }
 
 pub fn close(connection: &str, reason: &str) -> Result<(), HostError> {
