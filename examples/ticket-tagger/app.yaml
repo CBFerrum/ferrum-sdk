@@ -1,0 +1,21 @@
+id: ticket-tagger
+name: Ticket Tagger
+version: 0.1.0
+publisher: cbferrum
+summary: Tags each new support ticket with its topic, from a service of your own that may ask a model
+description: README.md
+categories: [support]
+license: Apache-2.0
+runtime: service
+platform: "^0.3"
+requires:
+  helpdesk: ">=0.6"
+packages: [ticket_tagger]
+prefix: Tg
+# What the service reaches, as an account of its own: tickets, to read them and set their topic.
+access:
+  - {entity: Ticket, read: true, write: true}
+# Where it runs, and what it hears of: a ticket's creation, named without its contents.
+service:
+  url: https://tagger.example.com/ferrum
+  events: [Ticket.created]

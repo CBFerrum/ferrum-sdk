@@ -49,8 +49,8 @@
       "anyOf": [{ "pattern": "^https?://[^\\s/\"'<>`\\\\][^\\s\"'<>`\\\\]*$" }, { "pattern": "^[^@\\s\"'<>()\\[\\]\\\\,;:`]+@[^@\\s\"'<>()\\[\\]\\\\,;:`]+\\.[^@\\s\"'<>()\\[\\]\\\\,;:`]+$" }]
     },
     "runtime": {
-      "description": "native: Rust compiled into a Ferrum distribution; wasm: sandboxed WebAssembly plugin plus metadata; meta: metadata only.",
-      "enum": ["native", "wasm", "meta"]
+      "description": "native: Rust compiled into a Ferrum distribution; wasm: sandboxed WebAssembly plugin plus metadata; meta: metadata only; service: code on your own servers, reached at service.url.",
+      "enum": ["native", "wasm", "meta", "service"]
     },
     "platform": { "description": "Ferrum app API versions this release works with, a semver requirement such as \">=0.3, <0.4\".", "type": "string", "minLength": 1 },
     "requires": {
@@ -67,6 +67,16 @@
       "items": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,62}$" }
     },
     "plugin": { "description": "wasm apps only: the plugin manifest; the module is plugin.wasm.", "const": "plugin.json" },
+    "service": {
+      "description": "service apps only: where the service is (Ferrum calls {url}/install, {url}/events and {url}/uninstall) and the topics it hears of, each about records its access reads.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https?://[^\\s?#@]+$", "maxLength": 200 },
+        "events": { "type": "array", "maxItems": 50, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Za-z0-9._*-]{1,120}$" } }
+      }
+    },
     "prefix": {
       "description": "PascalCase namespace (2-8 letters or digits, not starting with X) of a wasm or meta app's entities, e.g. Ev for EvChargePoint.",
       "type": "string",

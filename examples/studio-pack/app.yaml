@@ -1,0 +1,12 @@
+id: studio-pack
+name: Fitness Studio
+version: 0.1.0
+publisher: cbferrum
+summary: An industry pack in metadata alone - members, plans, memberships with their approval, and classes to book
+description: README.md
+categories: [industry]
+license: Apache-2.0
+runtime: meta
+platform: "^0.3"
+packages: [studio_pack]
+prefix: Fs
