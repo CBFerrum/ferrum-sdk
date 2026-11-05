@@ -23,7 +23,7 @@
 | 🧩 `plugin-sdk/` | **`ferrum-plugin-sdk`**, the Rust guest SDK for WebAssembly plugins |
 | 📐 `schemas/app.schema.json` | the JSON Schema of `app.yaml`, for editor validation |
 | 🏗️ `templates/` | what `ferrum-app new` generates |
-| 📚 `examples/` | `board` (screens and an extension point) and `customer-cards` (an interface of its own) |
+| 📚 `examples/` | `board` (screens and an extension point), `customer-cards` (an interface of its own), `studio-pack` (an industry pack in metadata) and `ticket-tagger` (an AI tool as a service on your own servers) |
 
 The CLI reads and writes bundles with `ferrum-apps`, the same library the Ferrum server and the
 store use: an app that passes `ferrum-app check` passes their checks too (the server
@@ -87,10 +87,17 @@ flowchart TD
     Q1{{"Does the app need code?"}} -->|no: entities, roles, workflows, prints| META["meta<br/><small>metadata only</small>"]
     Q1 -->|yes| Q2{{"Can it live in a sandbox?<br/><small>hooks, routes, sockets, schedules,<br/>HTTPS to declared hosts</small>"}}
     Q2 -->|yes| WASM["wasm<br/><small>plugin.wasm, limited to what it declares</small>"]
+    Q2 -->|"no: its own servers, any language, a model of its own"| SERVICE["service<br/><small>your servers: an account of its own, events without contents</small>"]
     Q2 -->|"no: raw sockets, transactional SQL, speed"| NATIVE["native<br/><small>Rust in the server image, reviewed code</small>"]
     classDef rt fill:#4f46e5,color:#fff,stroke:#4f46e5
-    class META,WASM,NATIVE rt
+    class META,WASM,SERVICE,NATIVE rt
 ```
+
+A **service** (`runtime: service`) runs wherever you run it: Ferrum calls `{url}/install` with an API
+key for the app's own account (which reaches only what `access` names) and the secret its events are
+signed with, sends the events it names to `{url}/events` without the records' contents, and calls
+`{url}/uninstall` when it is removed. `examples/ticket-tagger` is one, with a reference service in
+Python's standard library.
 
 ## Install the CLI
 

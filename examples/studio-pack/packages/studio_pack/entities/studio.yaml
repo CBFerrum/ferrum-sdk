@@ -1,0 +1,42 @@
+- name: FsMember
+  label: Member
+  kind: master
+  title_field: full_name
+  search_fields: [email, phone]
+  fields:
+    - {name: full_name, type: data, required: true, in_list: true}
+    - {name: email, type: email, in_list: true}
+    - {name: phone, type: phone}
+    - {name: emergency_contact, type: data}
+- name: FsPlan
+  label: Plan
+  kind: master
+  title_field: plan_name
+  fields:
+    - {name: plan_name, type: data, required: true, unique: true, in_list: true}
+    - {name: months, type: int, required: true, in_list: true}
+    - {name: price, type: currency, required: true, in_list: true}
+- name: FsMembership
+  label: Membership
+  kind: document
+  submittable: true
+  title_field: member
+  fields:
+    - {name: member, type: link, to: FsMember, required: true, in_list: true}
+    - {name: plan, type: link, to: FsPlan, required: true, in_list: true}
+    - {name: starts_on, type: date, required: true, in_list: true}
+- name: FsClass
+  label: Class
+  kind: master
+  title_field: class_name
+  fields:
+    - {name: class_name, type: data, required: true, in_list: true}
+    - {name: starts_at, type: datetime, required: true, in_list: true}
+    - {name: places, type: int, required: true}
+- name: FsBooking
+  label: Booking
+  kind: master
+  title_field: member
+  fields:
+    - {name: class, type: link, to: FsClass, required: true, in_list: true}
+    - {name: member, type: link, to: FsMember, required: true, in_list: true}

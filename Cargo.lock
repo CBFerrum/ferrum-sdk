@@ -1017,6 +1017,7 @@ dependencies = [
 [[package]]
 name = "ferrum-apps"
 version = "0.1.0"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
 dependencies = [
  "base64 0.22.1",
  "ferrum-meta",
@@ -1036,6 +1037,7 @@ dependencies = [
 [[package]]
 name = "ferrum-kernel"
 version = "0.1.0"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
 dependencies = [
  "argon2",
  "async-trait",
@@ -1046,6 +1048,8 @@ dependencies = [
  "dashmap",
  "data-encoding",
  "ferrum-meta",
+ "ferrum-saml",
+ "futures",
  "hex",
  "hmac 0.12.1",
  "jsonwebtoken",
@@ -1072,6 +1076,7 @@ dependencies = [
 [[package]]
 name = "ferrum-meta"
 version = "0.1.0"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
 dependencies = [
  "cel",
  "chrono",
@@ -1088,6 +1093,7 @@ dependencies = [
 [[package]]
 name = "ferrum-plugins"
 version = "0.1.0"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1095,6 +1101,7 @@ dependencies = [
  "ferrum-kernel",
  "ferrum-meta",
  "hex",
+ "hmac 0.12.1",
  "reqwest",
  "serde",
  "serde_json",
@@ -1104,6 +1111,14 @@ dependencies = [
  "tracing",
  "uuid",
  "wasmtime",
+]
+
+[[package]]
+name = "ferrum-saml"
+version = "0.1.0"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -1189,6 +1204,7 @@ checksum = "9a31d2a3fbaaeb2af2368bbdd904aa8e812d3c04a1ee10d3171f52d556e5d0a3"
 dependencies = [
  "futures-channel",
  "futures-core",
+ "futures-executor",
  "futures-io",
  "futures-sink",
  "futures-task",
@@ -1240,6 +1256,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53c0fa8157de1303bfffdaa1cc2a673bfffb60102f76b0ef4441659124373fed"
 
 [[package]]
+name = "futures-macro"
+version = "0.3.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.9",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1260,6 +1287,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-io",
+ "futures-macro",
  "futures-sink",
  "futures-task",
  "memchr",
