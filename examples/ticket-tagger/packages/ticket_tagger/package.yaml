@@ -1,0 +1,8 @@
+package: ticket_tagger
+version: 0.1.0
+depends: [helpdesk]
+field_prefix: tg_
+overlays:
+  - entity: Ticket
+    ops:
+      - {op: add_field, field: {name: tg_topic, label: Topic, type: select, options: [Billing, Account, Bug, Question, Other], in_list: true, in_filter: true}}

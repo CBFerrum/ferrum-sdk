@@ -148,7 +148,8 @@ pub(crate) fn generate(app: &NewApp) -> Result<BTreeMap<String, String>, String>
     let build_section = match app.runtime {
         Runtime::Wasm => render(PLUGIN_SECTION, &section_vars),
         Runtime::Native => render(NATIVE_SECTION, &section_vars),
-        Runtime::Meta => String::new(),
+        // `new` makes no service apps (their code is your own server's): examples/ticket-tagger is one.
+        Runtime::Meta | Runtime::Service => String::new(),
     };
     let plugin_summary = if wasm { "- A plugin that tidies note titles before they are saved" } else { "" };
     let native = app.runtime == Runtime::Native;

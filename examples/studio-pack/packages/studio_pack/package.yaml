@@ -1,0 +1,38 @@
+package: studio_pack
+version: 0.1.0
+depends: [core]
+field_prefix: fs_
+roles:
+  - name: Front Desk
+    permissions:
+      - {entity: FsMember, read: true, write: true, create: true}
+      - {entity: FsPlan, read: true}
+      - {entity: FsMembership, read: true, write: true, create: true}
+      - {entity: FsClass, read: true}
+      - {entity: FsBooking, read: true, write: true, create: true, delete: true}
+  - name: Studio Manager
+    permissions:
+      - {entity: FsMember, read: true, write: true, create: true, delete: true}
+      - {entity: FsPlan, read: true, write: true, create: true}
+      - {entity: FsMembership, read: true, write: true, create: true, submit: true, cancel: true}
+      - {entity: FsClass, read: true, write: true, create: true, delete: true}
+      - {entity: FsBooking, read: true, write: true, create: true, delete: true}
+# A membership is asked for at the desk and starts once the manager approves it.
+workflows:
+  - name: Membership Approval
+    entity: FsMembership
+    initial_state: Requested
+    states:
+      - {name: Requested, docstatus: 0, edit_roles: [Front Desk, Studio Manager]}
+      - {name: Active, docstatus: 1}
+      - {name: Ended, docstatus: 2}
+    transitions:
+      - {action: Approve, from: Requested, to: Active, roles: [Studio Manager]}
+      - {action: End, from: Active, to: Ended, roles: [Studio Manager]}
+seed:
+  - entity: FsPlan
+    key: [plan_name]
+    records:
+      - {plan_name: Monthly, months: 1, price: "60.00"}
+      - {plan_name: Quarterly, months: 3, price: "165.00"}
+      - {plan_name: Yearly, months: 12, price: "600.00"}
