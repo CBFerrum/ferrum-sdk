@@ -255,7 +255,8 @@ if (inPage) {
     locale: boot.locale?.language ?? navigator.language,
     lang: document.documentElement.lang || undefined,
     dir: document.documentElement.dir || undefined,
-    theme: null,
+    // The workspace's page already carries the look (data-theme and the --ferrum-* tokens on <html>).
+    theme: { mode: document.documentElement.dataset.theme === "dark" ? "dark" : "light", tokens: {} },
   });
   window.addEventListener("popstate", () => {
     for (const fn of listeners.get("location") ?? []) fn({ path: location.pathname + location.search });
