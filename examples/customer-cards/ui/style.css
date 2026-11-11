@@ -65,7 +65,7 @@ input {
   background: var(--surface);
   color: inherit;
   font: inherit;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 .card:hover,
