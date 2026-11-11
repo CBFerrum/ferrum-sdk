@@ -1,13 +1,15 @@
-/* The host's look arrives as --<name> variables (ferrum.js); these are the fallbacks. */
+/* The host's look: on a page of the workspace its tokens are already on <html> as --ferrum-<name> (and follow
+   light/dark); in a frame ferrum.js sets --<name> from the context's theme, which wins. These are the fallbacks. */
 :root {
-  --bg: #f6f7f9;
-  --text: #17191d;
-  --muted: #5b6472;
-  --surface: #fff;
-  --border: #d9dee5;
-  --primary: #2f5bea;
-  --radius: 10px;
-  --font: system-ui, sans-serif;
+  color-scheme: light dark;
+  --bg: var(--ferrum-bg, #f6f7f9);
+  --text: var(--ferrum-text, #17191d);
+  --muted: var(--ferrum-muted, #5b6472);
+  --surface: var(--ferrum-surface, #fff);
+  --border: var(--ferrum-border, #d9dee5);
+  --primary: var(--ferrum-primary, #2f5bea);
+  --radius: var(--ferrum-radius, 10px);
+  --font: var(--ferrum-font, system-ui, sans-serif);
 }
 * {
   box-sizing: border-box;
@@ -65,7 +67,7 @@ input {
   background: var(--surface);
   color: inherit;
   font: inherit;
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 .card:hover,
@@ -96,9 +98,9 @@ summary {
 }
 .checks .ok::before {
   content: "✓ ";
-  color: #1f7a4d;
+  color: var(--ferrum-success, #1f7a4d);
 }
 .checks .bad::before {
   content: "✗ ";
-  color: #c0352b;
+  color: var(--ferrum-danger, #c0352b);
 }

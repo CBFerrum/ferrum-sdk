@@ -63,6 +63,13 @@ function applyTheme(theme) {
   for (const [name, value] of Object.entries(theme.tokens ?? {})) root.style.setProperty(`--${name}`, value);
 }
 
+/** The host's language and direction on the document, when it gives them (an older host does not: the page stays as authored). */
+function applyLocale(ctx) {
+  const root = document.documentElement;
+  if (typeof ctx?.lang === "string" && ctx.lang) root.lang = ctx.lang;
+  if (ctx?.dir === "rtl" || ctx?.dir === "ltr") root.dir = ctx.dir;
+}
+
 window.addEventListener("message", (e) => {
   if (e.source !== window.parent || e.data?.ferrum !== "init" || !e.ports[0]) return;
   port?.close();
@@ -80,6 +87,7 @@ window.addEventListener("message", (e) => {
   };
   call("context").then((ctx) => {
     applyTheme(ctx.theme);
+    applyLocale(ctx);
     started(ctx);
   });
 });
@@ -245,7 +253,10 @@ if (inPage) {
     user: { id: boot.person.id, name: boot.person.name, email: boot.person.email },
     workspace: boot.workspace?.name ?? "",
     locale: boot.locale?.language ?? navigator.language,
-    theme: null,
+    lang: document.documentElement.lang || undefined,
+    dir: document.documentElement.dir || undefined,
+    // The workspace's page already carries the look (data-theme and the --ferrum-* tokens on <html>).
+    theme: { mode: document.documentElement.dataset.theme === "dark" ? "dark" : "light", tokens: {} },
   });
   window.addEventListener("popstate", () => {
     for (const fn of listeners.get("location") ?? []) fn({ path: location.pathname + location.search });
