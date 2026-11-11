@@ -310,7 +310,7 @@ copy `examples/board/ui/ferrum.js` into your app's `ui/`. They can do what the a
 ```js
 import { ferrum } from "./ferrum.js";
 
-const ctx = await ferrum.ready; // app, slot, user, locale, theme; record for panels
+const ctx = await ferrum.ready; // app, slot, user, locale, lang, dir, theme; record for panels
 const { rows } = await ferrum.api("GET", "/api/v1/BdCard", { query: { limit: 20 } });
 ferrum.toast(`${rows.length} cards`);
 ```
@@ -341,7 +341,7 @@ flowchart LR
 ```js
 import { ferrum } from "./ferrum.js";
 
-const ctx = await ferrum.ready;                 // app, user, locale, theme, and path under the route
+const ctx = await ferrum.ready;                 // app, user, locale, lang, dir, theme, and path under the route
 const { rows } = await ferrum.api("GET", "/api/v1/Customer", { query: { limit: 20 } });
 ferrum.title("Customers");                      // the bar's and the tab's title
 ferrum.started();                               // drawn: otherwise the platform offers a reload
