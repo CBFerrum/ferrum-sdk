@@ -1017,7 +1017,7 @@ dependencies = [
 [[package]]
 name = "ferrum-apps"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#a337a43c1e6bc44e8b6bd24c23b60a44711b3ccc"
 dependencies = [
  "base64 0.22.1",
  "ferrum-meta",
@@ -1037,7 +1037,7 @@ dependencies = [
 [[package]]
 name = "ferrum-kernel"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#a337a43c1e6bc44e8b6bd24c23b60a44711b3ccc"
 dependencies = [
  "argon2",
  "async-trait",
@@ -1076,7 +1076,7 @@ dependencies = [
 [[package]]
 name = "ferrum-meta"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#a337a43c1e6bc44e8b6bd24c23b60a44711b3ccc"
 dependencies = [
  "cel",
  "chrono",
@@ -1093,7 +1093,7 @@ dependencies = [
 [[package]]
 name = "ferrum-plugins"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#a337a43c1e6bc44e8b6bd24c23b60a44711b3ccc"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1116,7 +1116,7 @@ dependencies = [
 [[package]]
 name = "ferrum-saml"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#b17ff369a6d8094eafbf27c0e38cbe587c4eaeb1"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#a337a43c1e6bc44e8b6bd24c23b60a44711b3ccc"
 dependencies = [
  "serde",
 ]
