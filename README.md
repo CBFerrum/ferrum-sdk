@@ -61,6 +61,7 @@ flowchart LR
   | `meta` | none, metadata only | entities, fields on existing entities, roles, menus, workflows, print formats, seed data |
   | `wasm` | a sandboxed WebAssembly module (`plugin.wasm`) | the above, plus hooks, HTTP routes, WebSockets, event subscriptions, schedules, HTTPS calls to declared hosts, all limited to what it declares |
   | `native` | Rust compiled into a Ferrum distribution | everything the platform can do; reserved for reviewed code |
+  | `service` | your own servers, any language, reached over HTTPS | an account of its own with the records `access` names, and the events it names (see below) |
 
 * **Package**: Ferrum's metadata unit (`package.yaml`, `entities/*.yaml`, `sql/*.sql`,
   `print/<Entity>.html`). An app brings packages under `packages/<name>/`. A package that keeps
@@ -96,7 +97,8 @@ flowchart TD
 A **service** (`runtime: service`) runs wherever you run it: Ferrum calls `{url}/install` with an API
 key for the app's own account (which reaches only what `access` names) and the secret its events are
 signed with, sends the events it names to `{url}/events` without the records' contents, and calls
-`{url}/uninstall` when it is removed. `examples/ticket-tagger` is one, with a reference service in
+`{url}/uninstall` when it is removed. A store lists a service only at an `https` address, and
+`ferrum-app new` scaffolds none. `examples/ticket-tagger` is one, with a reference service in
 Python's standard library.
 
 ## Install the CLI
@@ -144,7 +146,8 @@ which carries no tables of its own: such an app reads and writes the platform's 
 `access` names), or on an origin of its own. `examples/customer-cards` is a larger one.
 
 For a native app, `--ui` makes a Vite, React and TypeScript interface built with Ferrum-Frontend's
-packages from a checkout of Ferrum next to the app (`../../ferrum/web`; they are not on npm yet),
+packages from a checkout of that repository at `ferrum/web` beside the app (`../../ferrum/web`
+from `ui/`; they are not on npm),
 as Ferrum's own apps are. Its loop is hot reload against a real server: in `ui/`, `npm run dev`
 starts Vite; on a Ferrum server run with `FERRUM_DEV_UI=true`,
 
@@ -194,8 +197,10 @@ fn handle(req: Request) -> Value {
 }
 ```
 
-Inputs, replies and host calls (`data.*`, `kv.*`, `http.fetch`, `events.emit`, `sockets.*`,
-`log`, `time.now`) are described in the Ferrum repository, `docs/plugins.md`. Any language that
+Inputs, replies and host calls (`data.*`, `kv.*`, `http.fetch`, `crypto.verify_hmac_sha256`,
+`events.emit`, `sockets.*`, `resource.query` and `resource.execute`, `log`, `time.now`) are
+described in the Ferrum repository, `docs/plugins.md`. The SDK has a function for each but
+`data.cancel` and the `resource.*` calls, which go through `ferrum_plugin_sdk::call`. Any language that
 compiles to a core WebAssembly module works; the module may import only `ferrum.host_call` and
 must export `memory`, `ferrum_alloc` and `ferrum_hook`.
 
@@ -208,7 +213,7 @@ ferrum-app new crm --runtime native --publisher cbferrum
 Native apps are Rust crates compiled into a Ferrum distribution, for first-party and reviewed
 code that needs raw sockets, direct transactional SQL or speed. `new` scaffolds the manifest,
 docs and packages; the crate (`ferrum-app-<id>`, with its `Cargo.toml` next to `app.yaml`)
-depends on the platform crates by git tag, embeds `packages/` at compile time and exposes
+depends on the platform crates by git (`branch = "main"`), embeds `packages/` at compile time and exposes
 `MANIFEST`, `packages()`, `register(&mut HookRegistry)`, `reports()` and
 `maintenance(&Kernel)`; see [ferrum-app-crm](https://github.com/CBFerrum/ferrum-app-crm) for a
 complete example. Its `DocHook`s take part in every document's life (`before_validate` …
@@ -230,30 +235,40 @@ its crate installs when the app it joins is installed too) stay out, with a note
 | `publisher` | yes | your store publisher id (same syntax as `id`) |
 | `summary` | yes | one line, at most 200 characters |
 | `description` | | a markdown file in the bundle, usually `README.md`. The store's page renders it without raw HTML, pictures or diagrams (put pictures in `screenshots`); the install dialog shows its opening prose |
-| `categories` | yes | 1 to 3 of: sales, crm, support, hr, finance, inventory, manufacturing, projects, commerce, pos, communication, productivity, marketing, analytics, integrations, localization, energy, iot, education, healthcare, industry, developer |
+| `categories` | yes | 1 to 3 of: sales, crm, support, hr, finance, inventory, manufacturing, projects, commerce, pos, communication, productivity, marketing, analytics, integrations, localization, energy, iot, education, healthcare, industry, developer, suite (a meta app that only requires others), connector |
 | `icon` | | an image under `assets/` (png, jpg, jpeg, gif, webp, svg) |
 | `screenshots` | | up to 10 images under `assets/` |
 | `license` | | SPDX expression, such as `Apache-2.0` |
 | `homepage` | | an http(s) URL |
 | `support` | | an http(s) URL or an e-mail address |
-| `runtime` | yes | `native`, `wasm` or `meta` |
+| `runtime` | yes | `native`, `wasm`, `meta` or `service` |
 | `platform` | yes | semver requirement on the Ferrum app API, such as `">=0.3, <0.4"` (quote it: YAML reads a leading `>` as a block) |
 | `requires` | | other apps: `{crm: "^1.2"}` |
-| `packages` | meta: yes | directories under `packages/`; each directory's name is its package's name |
+| `parent` | | the app this one is an add-on of, shown under it; also listed in `requires` |
+| `packages` | meta: yes, unless it has `ui` or `requires` | directories under `packages/`; each directory's name is its package's name |
 | `plugin` | wasm: yes | `plugin.json` (wasm apps only; the module is `plugin.wasm`) |
+| `service` | service: yes | `{url, events?}`: where the service is, and up to 50 topics it hears of (`SalesInvoice.submitted`, `Customer.*`), each about records `access` reads |
+| `access` | | at most 100 entries `{entity, read?, write?, create?, delete?, submit?, cancel?, export?, import?, if_owner?, read_groups?, write_groups?}`: the records an app without a plugin (its pages, its service) may reach, within the person's rights |
+| `ui` | | `{dist, shell?, csp?, family?}`: the app's own interface; `dist` is the directory of built files holding an `index.html`, `csp` the origins its pages may reach beyond the workspace's host, by kind |
+| `extension_points` | | `{<id>.<name>: {description, schema?}}`: points other apps may contribute to (at most 20) |
+| `contributes` | | point to a list of items, each with an `id` (at most 20 points, 50 items each): the screen slots below, shell points such as `shell.app`, this app's own points, or those of an app in `requires` |
+| `operator_settings` | | native apps only: `[{key, env, doc, type?, values?, default?, applies?, sends?}]`, settings an operator chooses for the whole installation and the app's code reads; `type` one of text, bool, int, json, choice; `applies` `start` or `live` |
+| `resources` | | wasm and native apps only: `[{name, class, isolation, authority, ...}]`, what the app needs beyond the platform's records; `class` one of relational, object, time_series, search, cache, stream |
+| `deprecation` | | `{support_ends: YYYY-MM-DD, export, replacement?}`: set when its publisher is retiring the app |
+| `industrial` | | `{connectors, device_profiles, acceptance}`: the site runtime's connectors an industrial solution needs, and the device profiles and acceptance procedures under `industrial/` |
 | `prefix` | see below | PascalCase, 2 to 8 letters or digits, not starting with `X` |
 | `settings` | | `[{key, label, type, options?, required?, description?}]`; `key` snake_case and unique; `type` one of text, secret (write-only), number, check, select (select needs `options`) |
 | `uninstall` | | `keep` (default) or `ask`: whether removing the app offers to delete its data |
 
 > [!IMPORTANT]
-> **Namespaces.** A wasm or meta app's entities start with its `prefix` followed by a capital
+> **Namespaces.** A wasm, meta or service app's entities start with its `prefix` followed by a capital
 > letter or digit (`EvChargePoint`, not `Event`); its plugin's own entities (in `plugin.json`) are
 > named `X<prefix>…` (`XEvSession`); fields it adds to other packages' entities start with the
 > prefix in snake_case and `_` (`ev_`), which is also the only allowed `field_prefix`; its roles
-> cannot grant `*` (all entities). Role names starting with `plugin:` are reserved. The store
+> cannot grant `*` (all entities). Role names starting with `plugin:` or `service:` are reserved. The store
 > reserves each prefix for one publisher. Native apps are exempt.
 
-**Code and SQL.** Meta apps carry no code: no `plugin.json`, no `plugin.wasm`, no `sql/`. SQL in
+**Code and SQL.** Meta and service apps carry no code in the bundle: no `plugin.json`, no `plugin.wasm`, no `sql/`. SQL in
 wasm or native apps runs with the application role under tenant isolation and is accepted by the
 store only from verified publishers.
 
@@ -276,6 +291,9 @@ packages/<name>/README.md
 packages/<name>/entities/*.yaml
 packages/<name>/sql/*.sql
 packages/<name>/print/<Entity>.html
+packages/<name>/print/*.layout.json
+industrial/profiles/*.yaml   industrial solutions (not collected by `ferrum-app pack`)
+industrial/acceptance/*.yaml
 assets/**/*.{png,jpg,jpeg,gif,webp,svg}
 ui/**                        wasm and meta apps: screens
 ui/dist/**                   native apps: the built interface `ui.dist` names (never its sources)
