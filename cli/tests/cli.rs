@@ -318,5 +318,8 @@ fn schema_agrees_with_the_library() {
     assert_eq!(list(&schema["required"]), ["id", "name", "version", "publisher", "summary", "categories", "runtime", "platform"]);
     let keys = |v: &serde_json::Value| v.as_object().unwrap().keys().cloned().collect::<std::collections::BTreeSet<_>>();
     assert_eq!(keys(&schema["properties"]["ui"]["properties"]["csp"]["properties"]), ferrum_apps::shell::CSP_KINDS.iter().map(|k| k.to_string()).collect());
+    // The interface section's fields, no more and no fewer than the library reads.
+    let ui = ferrum_apps::shell::UiSection { dist: "ui".into(), csp: [("connect".into(), vec![])].into(), family: Some("Sales".into()) };
+    assert_eq!(keys(&schema["properties"]["ui"]["properties"]), keys(&serde_json::to_value(ui).unwrap()));
     assert!(schema["properties"]["access"]["items"]["properties"]["if_owner"].is_object());
 }
