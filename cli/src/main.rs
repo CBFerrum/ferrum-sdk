@@ -18,7 +18,7 @@ use std::time::{Duration, SystemTime};
 
 type Result<T> = std::result::Result<T, String>;
 
-/// Root files a bundle may hold; `packages/`, `assets/` and `ui/` are taken whole (hidden files skipped).
+/// Root files a bundle may hold; `packages/` and `assets/` are taken whole, `ui/` as [`ui_dir`] says (hidden files skipped).
 const ROOT_FILES: &[&str] = &["app.yaml", "README.md", "CHANGELOG.md", "LICENSE", "plugin.json", "plugin.wasm"];
 /// Largest file `sign`, `verify`, `inspect` and `publish` read as a bundle.
 const MAX_BUNDLE_FILE: u64 = 64 << 20;
@@ -314,9 +314,8 @@ fn walk(root: &Path, rel: &str, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata
     visit(rel, &path, &meta)
 }
 
-/// Visits every file of an app directory that belongs in its bundle. Of `ui/`: nothing for a native
-/// app (its crate embeds its interface), only the built directory of an interface built under it
-/// (`ui.dist: ui/dist`; its sources stay out), else all of it. Of `packages/`: a native app's listed
+/// Visits every file of an app directory that belongs in its bundle. Of `ui/`: the interface the
+/// manifest declares (see [`ui_dir`]), nothing without one. Of `packages/`: a native app's listed
 /// packages (see [`native_packages`]), else all of it.
 fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Result<()>) -> Result<()> {
     for rel in ROOT_FILES.iter().chain(&["assets"]) {
@@ -336,14 +335,14 @@ fn walk_app(dir: &Path, visit: &mut dyn FnMut(&str, &Path, &fs::Metadata) -> Res
     }
 }
 
-/// The part of `ui/` a bundle takes (see [`walk_app`]); a manifest that does not parse gives all of
-/// `ui/`, and the bundle's check reports the manifest. A native app's `ui/` holds the sources of its
-/// interface (Vite, TypeScript): its bundle takes only the built files `ui.dist` names, which the
-/// store reviews (its server embeds its own copy), and nothing when it declares none.
+/// The part of `ui/` a bundle takes (see [`walk_app`]): nothing when the app declares no interface of
+/// its own; a manifest that does not parse gives all of `ui/`, and the bundle's check reports the
+/// manifest. A native app's `ui/` holds the sources of its interface (Vite, TypeScript): its bundle
+/// takes only the built files `ui.dist` names, which the store reviews (its server embeds its own copy).
 fn ui_dir(dir: &Path) -> Option<String> {
     let manifest = fs::read_to_string(dir.join("app.yaml")).ok().and_then(|yaml| ferrum_apps::AppManifest::parse(&yaml).ok());
     let Some(m) = manifest else { return Some("ui".into()) };
-    let dist = m.ui.map(|u| u.dist.trim_end_matches('/').to_string()).filter(|d| d.starts_with("ui/") && !d.contains(".."));
+    let dist = Some(m.ui?.dist.trim_end_matches('/').to_string()).filter(|d| d.starts_with("ui/") && !d.contains(".."));
     if m.runtime == ferrum_apps::Runtime::Native {
         return dist;
     }
@@ -760,6 +759,15 @@ mod tests {
             &fs::read_to_string(dir.join("app.yaml"))
                 .unwrap()
                 .replace("ui:\n  dist: ui/dist\ncontributes:\n  shell.app:\n    - {id: till, route: till, title: Till}\n", ""),
+        );
+        assert!(!collect(&dir).expect("a bundle").keys().any(|p| p.starts_with("ui/")));
+        // Nor for a meta app: ui/ is an interface's, and there are no screens.
+        write(
+            "app.yaml",
+            &fs::read_to_string(dir.join("app.yaml"))
+                .unwrap()
+                .replace("runtime: native", "runtime: meta")
+                .replace("packages: []", "packages: [till]\nprefix: Ti"),
         );
         assert!(!collect(&dir).expect("a bundle").keys().any(|p| p.starts_with("ui/")));
         fs::remove_dir_all(&dir).unwrap();

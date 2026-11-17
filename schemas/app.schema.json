@@ -98,14 +98,9 @@
       }
     },
     "contributes": {
-      "description": "What the app adds to extension points: the screen slots, its own points, or points of apps it requires. Point -> items, each with an id unique within the point.",
+      "description": "What the app adds to extension points: the shell's points (shell.app, ...), its own points, or points of apps it requires. Point -> items, each with an id unique within the point.",
       "type": "object",
-      "properties": {
-        "ui.page": { "description": "Pages with a sidebar entry.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry"] } },
-        "ui.widget": { "description": "Widgets on Home.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry"] } },
-        "ui.panel": { "description": "Tabs on the forms of an entity.", "type": "array", "items": { "$ref": "#/definitions/screen", "required": ["id", "title", "entry", "entity"] } },
-        "ui.settings": { "description": "The app's own settings screen.", "type": "array", "maxItems": 1, "items": { "$ref": "#/definitions/screen", "required": ["id", "entry"] } }
-      },
+      "propertyNames": { "not": { "pattern": "^ui\\." } },
       "additionalProperties": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "required": ["id"], "properties": { "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } } } }
     },
     "ui": {
@@ -115,7 +110,6 @@
       "required": ["dist"],
       "properties": {
         "dist": { "description": "Directory in the bundle with the built files and their index.html, such as ui/dist.", "type": "string", "minLength": 1 },
-        "shell": { "description": "Shell API versions it works with, a semver requirement.", "type": "string", "minLength": 1, "default": ">=1.0" },
         "csp": {
           "description": "Origins its pages need beyond the workspace's host, by kind: https:// or wss:// origins, or setting:{key} for one an operator sets in the app's settings. Reviewed by the store; an interface that runs isolated may name none.",
           "type": "object",
@@ -178,18 +172,6 @@
   ],
   "definitions": {
     "origins": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-    "screen": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "title": { "type": "string", "maxLength": 60 },
-        "entry": { "description": "An HTML page under ui/.", "type": "string", "pattern": "^ui/.+\\.html$" },
-        "icon": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-        "size": { "description": "Widgets: [width, height] in grid cells, each 1 to 12.", "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 12 }, "minItems": 2, "maxItems": 2 },
-        "entity": { "description": "Panels: the entity whose forms show it.", "type": "string" }
-      }
-    },
     "image": {
       "description": "An image in the bundle under assets/.",
       "type": "string",

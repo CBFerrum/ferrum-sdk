@@ -1,12 +1,12 @@
-// Ferrum's bridge for an app's pages in frames (Ferrum docs/plugins.md, "Screens" and "Interfaces of
-// their own"). Copy this file into your app's interface and import it:
+// Ferrum's bridge for an app's pages (Ferrum docs/plugins.md, "Interfaces of their own"). Copy this
+// file into your app's interface and import it:
 //
 //   import { ferrum } from "./ferrum.js";
-//   const ctx = await ferrum.ready;                          // app, user, locale, theme; pages: path
+//   const ctx = await ferrum.ready;                          // app, user, locale, theme, path
 //   const { rows } = await ferrum.api("GET", "/api/v1/Customer", { query: { limit: 20 } });
-//   ferrum.title("Customers"); ferrum.started();             // a page: its title, and "I have drawn"
-//   ferrum.navigate("/cards/42");                            // a page: the address bar follows it
-//   ferrum.on("location", ({ path }) => route(path));        // a page: back and forward
+//   ferrum.title("Customers"); ferrum.started();             // its title, and "I have drawn"
+//   ferrum.navigate("/cards/42");                            // the address bar follows it
+//   ferrum.on("location", ({ path }) => route(path));        // back and forward
 //
 // The page runs sandboxed: no session, no storage of the workspace's site, no network but its own
 // files. Every call goes to the host page, which sends it to Ferrum on the person's behalf, limited
@@ -312,7 +312,7 @@ export const ferrum = {
   ready,
   /** A call to `/api/v1/…`, `/api/meta/…` or this app's `/api/ext/<app>/…`; resolves with the JSON answer. */
   api: (method, path, { query, body, ifMatch } = {}) => call("api", { method, path, query, body, ifMatch }),
-  /** Pages: the same, sent straight from the page with a short-lived app token (uploads, streams). */
+  /** The same, sent straight from the page with a short-lived app token (uploads, streams). */
   async fetch(path, init = {}) {
     if (inPage) return fetch(path, { ...init, credentials: "same-origin" });
     const headers = new Headers(init.headers);
@@ -321,22 +321,20 @@ export const ferrum = {
     if (r.status === 401) expire();
     return r;
   },
-  /** Screens: a path of the web app. Pages: where the page went, so the address bar follows. */
+  /** Where the page went, so the address bar follows. */
   navigate: (to, { replace = false } = {}) => call("navigate", { to, replace }),
-  /** Pages: leave for another page of the site (another app's, say). */
+  /** Leave for another page of the site (another app's, say). */
   open: (url) => call("open", { url }),
   openRecord: (entity, id) => call("openRecord", { entity, id }),
-  /** Pages: the title the bar and the tab show. */
+  /** The title the bar and the tab show. */
   title: (text) => call("title", { text }),
-  /** Pages: tell the platform the page has drawn (or it offers a reload after a while). */
+  /** Tell the platform the page has drawn (or it offers a reload after a while). */
   started: () => call("ready"),
   toast: (message, tone = "success") => call("toast", { message, tone }),
   /** Asks the user; resolves to true when they confirm. */
   confirm: (title, { message, confirmLabel, danger } = {}) => call("confirm", { title, message, confirmLabel, danger }),
-  /** Widgets and panels: the height the frame should have (by default, the page's content). */
-  resize: (height = Math.ceil(document.documentElement.getBoundingClientRect().height)) => call("resize", { height }),
-  /** Events: `theme` (the look changed), `record` (a panel's record was saved), `location` (pages:
-   *  back or forward, with the new `path`). Returns an unsubscribe. */
+  /** Events: `theme` (the look changed), `location` (back or forward, with the new `path`).
+   *  Returns an unsubscribe. */
   on(event, fn) {
     if (!listeners.has(event)) listeners.set(event, new Set());
     listeners.get(event).add(fn);
