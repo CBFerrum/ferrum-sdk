@@ -23,7 +23,7 @@
 | 🧩 `plugin-sdk/` | **`ferrum-plugin-sdk`**, the Rust guest SDK for WebAssembly plugins |
 | 📐 `schemas/app.schema.json` | the JSON Schema of `app.yaml`, for editor validation |
 | 🏗️ `templates/` | what `ferrum-app new` generates |
-| 📚 `examples/` | `board` (screens and an extension point), `customer-cards` (an interface of its own), `studio-pack` (an industry pack in metadata) and `ticket-tagger` (an AI tool as a service on your own servers) |
+| 📚 `examples/` | `board` (an extension point other apps add to), `customer-cards` (an interface of its own), `studio-pack` (an industry pack in metadata) and `ticket-tagger` (an AI tool as a service on your own servers) |
 
 The CLI reads and writes bundles with `ferrum-apps`, the same library the Ferrum server and the
 store use: an app that passes `ferrum-app check` passes their checks too (the server
@@ -249,9 +249,9 @@ its crate installs when the app it joins is installed too) stay out, with a note
 | `plugin` | wasm: yes | `plugin.json` (wasm apps only; the module is `plugin.wasm`) |
 | `service` | service: yes | `{url, events?}`: where the service is, and up to 50 topics it hears of (`SalesInvoice.submitted`, `Customer.*`), each about records `access` reads |
 | `access` | | at most 100 entries `{entity, read?, write?, create?, delete?, submit?, cancel?, export?, import?, if_owner?, read_groups?, write_groups?}`: the records an app without a plugin (its pages, its service) may reach, within the person's rights |
-| `ui` | | `{dist, shell?, csp?, family?}`: the app's own interface; `dist` is the directory of built files holding an `index.html`, `csp` the origins its pages may reach beyond the workspace's host, by kind |
+| `ui` | | `{dist, csp?, family?}`: the app's own interface; `dist` is the directory of built files holding an `index.html`, `csp` the origins its pages may reach beyond the workspace's host, by kind |
 | `extension_points` | | `{<id>.<name>: {description, schema?}}`: points other apps may contribute to (at most 20) |
-| `contributes` | | point to a list of items, each with an `id` (at most 20 points, 50 items each): the screen slots below, shell points such as `shell.app`, this app's own points, or those of an app in `requires` |
+| `contributes` | | point to a list of items, each with an `id` (at most 20 points, 50 items each): shell points such as `shell.app`, this app's own points, or those of an app in `requires` |
 | `operator_settings` | | native apps only: `[{key, env, doc, type?, values?, default?, applies?, sends?}]`, settings an operator chooses for the whole installation and the app's code reads; `type` one of text, bool, int, json, choice; `applies` `start` or `live` |
 | `resources` | | wasm and native apps only: `[{name, class, isolation, authority, ...}]`, what the app needs beyond the platform's records; `class` one of relational, object, time_series, search, cache, stream |
 | `deprecation` | | `{support_ends: YYYY-MM-DD, export, replacement?}`: set when its publisher is retiring the app |
@@ -295,47 +295,25 @@ packages/<name>/print/*.layout.json
 industrial/profiles/*.yaml   industrial solutions (not collected by `ferrum-app pack`)
 industrial/acceptance/*.yaml
 assets/**/*.{png,jpg,jpeg,gif,webp,svg}
-ui/**                        wasm and meta apps: screens
+ui/**                        wasm and meta apps: their own interface
 ui/dist/**                   native apps: the built interface `ui.dist` names (never its sources)
 SIGNATURES.json              added by ferrum-app sign
 ```
 
 Anything else is refused. Limits: 50 MiB unpacked, 2 000 files, 8 MiB `plugin.wasm`, 2 MiB per
 text file. Text files are UTF-8; images must really be images; paths use letters, digits, `.`,
-`_`, `-` and `/` only (no hidden files, no `..`, no links or devices). Screens under `ui/` may
+`_`, `-` and `/` only (no hidden files, no `..`, no links or devices). Files under `ui/` may
 hold `html`, `js`, `mjs`, `css`, `json`, `map`, `txt` and `svg` text, and `wasm`, `woff2` and
 raster images up to 16 MiB each. `ferrum-app` builds the bundle from the app directory's root
-files, `packages/`, `assets/` and `ui/` (hidden files skipped), so sources such as `plugin/`,
+files, `packages/`, `assets/` and the interface `ui` names under `ui/` (hidden files skipped), so sources such as `plugin/`,
 `target/` or `.git/` never end up in it. Packing is deterministic: the same files always give the
 same `.fapp`.
 
-## Screens and extension points
+## Extension points
 
-An app can bring screens (pages under `ui/`) and offer or use extension points. Ferrum's
-`docs/plugins.md` ("Extension points and add-ons", "Screens") is the reference.
-
-| Slot | Shows | Item |
-|---|---|---|
-| `ui.page` | a page with a sidebar entry | `title`, `entry`, `icon` |
-| `ui.widget` | a card on Home | `title`, `entry`, `size: [w, h]` |
-| `ui.panel` | a tab on the forms of an entity | `title`, `entry`, `entity` |
-| `ui.settings` | the app's settings screen | `entry` |
-
-Screens run sandboxed, with no network of their own. They talk to Ferrum through `ferrum.js`:
-copy `examples/board/ui/ferrum.js` into your app's `ui/`. They can do what the app declared
-(its plugin's permissions and its own entities), within the user's rights.
-
-```js
-import { ferrum } from "./ferrum.js";
-
-const ctx = await ferrum.ready; // app, slot, user, locale, lang, dir, theme; record for panels
-const { rows } = await ferrum.api("GET", "/api/v1/BdCard", { query: { limit: 20 } });
-ferrum.toast(`${rows.length} cards`);
-```
-
-Scripts must be files: the screens' Content Security Policy allows no inline scripts. Forms
-cannot be submitted, so use buttons. `examples/board` shows all of it: a page, a widget, a panel,
-a settings screen and the `board.card` extension point.
+An app can offer extension points for other apps to contribute to, and contribute to the points of
+the apps it requires (Ferrum's `docs/plugins.md`, "Extension points and add-ons"). `examples/board`
+offers one, `board.card`.
 
 ## Interfaces of their own
 
@@ -373,6 +351,8 @@ Where the server gives apps origins of their own (`FERRUM_APPS_BASE`), the frame
 there, the page has no host, and `ferrum.js` signs in through the workspace (OAuth with PKCE),
 keeps the session for the tab and makes the same calls itself, so the code above runs unchanged.
 Refer to the interface's files by relative URLs: they sit at different paths in the two cases.
+Scripts must be files: the interface's Content Security Policy allows no inline scripts. An isolated
+page cannot submit forms, so use buttons.
 
 An app without a plugin declares what its pages may reach in app.yaml's `access`
 (`[{entity: Customer, read: true}]`). `examples/customer-cards` is a complete example: an interface
