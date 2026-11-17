@@ -2,7 +2,7 @@ id: board
 name: Board
 version: 1.0.1
 publisher: cbferrum
-summary: Cards on a board, with its own page, a Home widget, a panel and a settings screen
+summary: Cards, and an extension point through which other apps add kinds of cards
 description: README.md
 categories: [productivity]
 runtime: meta
@@ -14,12 +14,3 @@ extension_points:
   board.card:
     description: A kind of card the board offers
     schema: {type: object, required: [label], additionalProperties: false, properties: {label: {type: string, maxLength: 40}}}
-contributes:
-  ui.page:
-    - {id: board, title: Board, entry: ui/board.html, icon: grid}
-  ui.widget:
-    - {id: count, title: Cards, entry: ui/count.html, size: [4, 2]}
-  ui.panel:
-    - {id: details, title: On the board, entity: BdCard, entry: ui/panel.html}
-  ui.settings:
-    - {id: settings, entry: ui/settings.html}

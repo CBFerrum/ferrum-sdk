@@ -1,7 +1,13 @@
 # Board
 
-An example of an app with screens (docs/plugins.md in Ferrum, "Screens"): a page with a sidebar
-entry, a widget on Home, a panel on the Card form and a settings screen, all talking to Ferrum
-through `ui/ferrum.js`. It also offers an extension point, `board.card`, for add-ons.
+An example of an extension point (docs/plugins.md in Ferrum, "Extension points"): a meta app with
+one entity, cards, that offers `board.card`, a point other apps contribute kinds of cards to. An
+app that requires `board` adds one under `contributes`:
+
+```yaml
+contributes:
+  board.card:
+    - {id: bug, label: Bug}
+```
 
     ferrum-app dev examples/board --install
