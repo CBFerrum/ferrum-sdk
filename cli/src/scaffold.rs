@@ -106,7 +106,7 @@ fn default_prefix(id: &str) -> Option<String> {
     ok.then_some(prefix)
 }
 
-/// `>=0.3, <0.4` for app API 0.3.x (`>=1.2, <2` from 1.0 on).
+/// `>=0.4, <0.5` for app API 0.4.x (`>=1.2, <2` from 1.0 on).
 fn platform_requirement() -> Result<String, String> {
     let v = semver::Version::parse(PLATFORM_VERSION).map_err(|e| e.to_string())?;
     Ok(if v.major == 0 { format!(">=0.{}, <0.{}", v.minor, v.minor + 1) } else { format!(">={}.{}, <{}", v.major, v.minor, v.major + 1) })
@@ -298,7 +298,8 @@ mod tests {
                 assert!(!text.contains("{{"), "{runtime} {path} keeps a placeholder");
             }
             let yaml = &files["app.yaml"];
-            assert!(yaml.contains("runtime: ") && yaml.contains("platform: \">=0.3, <0.4\""), "{yaml}");
+            let platform = platform_requirement().expect("the platform's version");
+            assert!(yaml.contains("runtime: ") && yaml.contains(&format!("platform: \"{platform}\"")), "{yaml}");
             assert_eq!(files.contains_key("plugin.json"), runtime == Runtime::Wasm);
             assert_eq!(yaml.contains("prefix: Ev"), runtime != Runtime::Native);
             let entity =
