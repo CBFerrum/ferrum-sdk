@@ -59,6 +59,18 @@
       "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,39}$" },
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
+    "wants": {
+      "description": "Optional services of the installation this app works better with; the install dialog says whether each is there.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["keys.external", "search", "events.stream", "analytics", "notify"] }
+    },
+    "needs": {
+      "description": "Optional services of the installation this app cannot work without; installing it is refused while one is missing.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["keys.external", "search", "events.stream", "analytics", "notify"] }
+    },
     "parent": { "description": "The app this one is an add-on of, shown under it on the Apps page; it must also be in requires.", "type": "string", "pattern": "^[a-z][a-z0-9-]{1,39}$" },
     "packages": {
       "description": "Package directories under packages/ (each holds package.yaml, entities/*.yaml, sql/*.sql, print/*.html).",
