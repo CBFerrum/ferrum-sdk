@@ -315,6 +315,9 @@ fn schema_agrees_with_the_library() {
     let list = |v: &serde_json::Value| v.as_array().unwrap().iter().map(|c| c.as_str().unwrap().to_string()).collect::<Vec<_>>();
     assert_eq!(list(&schema["properties"]["categories"]["items"]["enum"]), ferrum_apps::CATEGORIES);
     assert_eq!(list(&schema["definitions"]["setting"]["properties"]["type"]["enum"]), ferrum_apps::SETTING_TYPES);
+    for key in ["wants", "needs"] {
+        assert_eq!(list(&schema["properties"][key]["items"]["enum"]), ferrum_apps::SERVICES, "{key}");
+    }
     assert_eq!(list(&schema["required"]), ["id", "name", "version", "publisher", "summary", "categories", "runtime", "platform"]);
     let keys = |v: &serde_json::Value| v.as_object().unwrap().keys().cloned().collect::<std::collections::BTreeSet<_>>();
     assert_eq!(keys(&schema["properties"]["ui"]["properties"]["csp"]["properties"]), ferrum_apps::shell::CSP_KINDS.iter().map(|k| k.to_string()).collect());

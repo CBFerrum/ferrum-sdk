@@ -246,6 +246,8 @@ its crate installs when the app it joins is installed too) stay out, with a note
 | `platform` | yes | semver requirement on the Ferrum app API, such as `">=0.4.0, <0.5"` (quote it: YAML reads a leading `>` as a block) |
 | `requires` | | other apps: `{crm: "^1.2"}` |
 | `parent` | | the app this one is an add-on of, shown under it; also listed in `requires` |
+| `wants` | | optional services of the installation it works better with (`keys.external`, `search`, `events.stream`, `analytics`, `notify`); the install dialog says whether each is there |
+| `needs` | | optional services it cannot work without; installing it is refused while one is missing |
 | `packages` | meta: yes, unless it has `ui` or `requires` | directories under `packages/`; each directory's name is its package's name |
 | `plugin` | wasm: yes | `plugin.json` (wasm apps only; the module is `plugin.wasm`) |
 | `service` | service: yes | `{url, events?}`: where the service is, and up to 50 topics it hears of (`SalesInvoice.submitted`, `Customer.*`), each about records `access` reads |

@@ -1108,7 +1108,7 @@ dependencies = [
 [[package]]
 name = "ferrum-apps"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "base64 0.22.1",
  "ferrum-meta",
@@ -1128,7 +1128,7 @@ dependencies = [
 [[package]]
 name = "ferrum-kernel"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "ammonia",
  "argon2",
@@ -1174,7 +1174,7 @@ dependencies = [
 [[package]]
 name = "ferrum-logic"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "cel",
  "chrono",
@@ -1189,7 +1189,7 @@ dependencies = [
 [[package]]
 name = "ferrum-meta"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "cel",
  "chrono",
@@ -1209,7 +1209,7 @@ dependencies = [
 [[package]]
 name = "ferrum-plugins"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1232,7 +1232,7 @@ dependencies = [
 [[package]]
 name = "ferrum-saml"
 version = "0.1.0"
-source = "git+https://github.com/CBFerrum/Ferrum?branch=main#8116bdd77be1d84f9794ddcaa3c2e135d3e01273"
+source = "git+https://github.com/CBFerrum/Ferrum?branch=main#6eae9ef57574173188b11ed00864d85bd4ca79bf"
 dependencies = [
  "serde",
 ]
