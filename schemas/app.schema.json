@@ -52,7 +52,7 @@
       "description": "native: Rust compiled into a Ferrum distribution; wasm: sandboxed WebAssembly plugin plus metadata; meta: metadata only; service: code on your own servers, reached at service.url.",
       "enum": ["native", "wasm", "meta", "service"]
     },
-    "platform": { "description": "Ferrum app API versions this release works with, a semver requirement such as \">=0.3, <0.4\".", "type": "string", "minLength": 1 },
+    "platform": { "description": "Ferrum app API versions this release works with, a semver requirement such as \">=0.4.0, <0.5\".", "type": "string", "minLength": 1 },
     "requires": {
       "description": "Other apps this one needs: app id -> semver requirement.",
       "type": "object",

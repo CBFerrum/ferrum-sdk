@@ -6,7 +6,7 @@ summary: Cards, and an extension point through which other apps add kinds of car
 description: README.md
 categories: [productivity]
 runtime: meta
-platform: "^0.3"
+platform: ">=0.4.0, <0.5"
 packages: [board]
 prefix: Bd
 # Other apps may add kinds of cards (docs/plugins.md, "Extension points").

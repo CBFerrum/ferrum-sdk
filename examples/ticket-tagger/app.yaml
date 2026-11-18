@@ -7,7 +7,7 @@ description: README.md
 categories: [support]
 license: Apache-2.0
 runtime: service
-platform: "^0.3"
+platform: ">=0.4.0, <0.5"
 requires:
   helpdesk: ">=0.6"
 packages: [ticket_tagger]
