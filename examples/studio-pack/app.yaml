@@ -7,6 +7,6 @@ description: README.md
 categories: [industry]
 license: Apache-2.0
 runtime: meta
-platform: "^0.3"
+platform: ">=0.4.0, <0.5"
 packages: [studio_pack]
 prefix: Fs

@@ -215,7 +215,8 @@ code that needs raw sockets, direct transactional SQL or speed. `new` scaffolds 
 docs and packages; the crate (`ferrum-app-<id>`, with its `Cargo.toml` next to `app.yaml`)
 depends on the platform crates by git (`branch = "main"`), embeds `packages/` at compile time and exposes
 `MANIFEST`, `packages()`, `register(&mut HookRegistry)`, `reports()` and
-`maintenance(&Kernel)`; see [ferrum-app-crm](https://github.com/CBFerrum/ferrum-app-crm) for a
+`maintenance(&Kernel, tenant)` (the work of one workspace; the platform's app contract, *Upkeep*, says when it
+is called); see [ferrum-app-crm](https://github.com/CBFerrum/ferrum-app-crm) for a
 complete example. Its `DocHook`s take part in every document's life (`before_validate` …
 `on_cancel`, actions) and may extend the platform's own actions with `after_action`
 (Manufacturing Operations re-costs a BOM's operations when "Update Cost" re-costs its materials).
@@ -242,7 +243,7 @@ its crate installs when the app it joins is installed too) stay out, with a note
 | `homepage` | | an http(s) URL |
 | `support` | | an http(s) URL or an e-mail address |
 | `runtime` | yes | `native`, `wasm`, `meta` or `service` |
-| `platform` | yes | semver requirement on the Ferrum app API, such as `">=0.3, <0.4"` (quote it: YAML reads a leading `>` as a block) |
+| `platform` | yes | semver requirement on the Ferrum app API, such as `">=0.4.0, <0.5"` (quote it: YAML reads a leading `>` as a block) |
 | `requires` | | other apps: `{crm: "^1.2"}` |
 | `parent` | | the app this one is an add-on of, shown under it; also listed in `requires` |
 | `packages` | meta: yes, unless it has `ui` or `requires` | directories under `packages/`; each directory's name is its package's name |

@@ -743,7 +743,7 @@ mod tests {
         };
         write(
             "app.yaml",
-            "id: till\nname: Till\nversion: 0.1.0\npublisher: acme\nsummary: A till\ncategories: [pos]\nruntime: native\nplatform: \">=0.3, <0.4\"\n\
+            "id: till\nname: Till\nversion: 0.1.0\npublisher: acme\nsummary: A till\ncategories: [pos]\nruntime: native\nplatform: \">=0.4.0, <0.5\"\n\
              packages: []\nui:\n  dist: ui/dist\ncontributes:\n  shell.app:\n    - {id: till, route: till, title: Till}\n",
         );
         write("ui/package.json", "{}");
@@ -782,7 +782,7 @@ mod tests {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, text).unwrap();
         };
-        let manifest = "id: desk\nname: Desk\nversion: 0.1.0\npublisher: acme\nsummary: A desk\ncategories: [crm]\nruntime: native\nplatform: \">=0.3, <0.4\"\n\
+        let manifest = "id: desk\nname: Desk\nversion: 0.1.0\npublisher: acme\nsummary: A desk\ncategories: [crm]\nruntime: native\nplatform: \">=0.4.0, <0.5\"\n\
                         packages: [desk]\n";
         write("app.yaml", manifest);
         write("packages/desk/package.yaml", "package: desk\nversion: 0.1.0\n");
@@ -800,12 +800,12 @@ mod tests {
     #[test]
     fn dev_uploads_get_their_own_versions() {
         let mut files = BTreeMap::from([
-            ("app.yaml".to_string(), b"id: kit\nversion: 0.2.0\nplatform: \">=0.3\"\n".to_vec()),
+            ("app.yaml".to_string(), b"id: kit\nversion: 0.2.0\nplatform: \">=0.4.0\"\n".to_vec()),
             ("packages/kit/package.yaml".to_string(), b"package: kit\nversion: \"1.0.0-beta.2\"\n".to_vec()),
             ("packages/kit/entities/note.yaml".to_string(), b"version: untouched\n".to_vec()),
         ]);
         dev_versions(&mut files, 42);
-        assert_eq!(files["app.yaml"], b"id: kit\nversion: \"0.2.0-dev.42\"\nplatform: \">=0.3\"\n");
+        assert_eq!(files["app.yaml"], b"id: kit\nversion: \"0.2.0-dev.42\"\nplatform: \">=0.4.0\"\n");
         assert_eq!(files["packages/kit/package.yaml"], b"package: kit\nversion: \"1.0.0-beta.2.dev.42\"\n");
         assert_eq!(files["packages/kit/entities/note.yaml"], b"version: untouched\n", "only manifests change");
     }
